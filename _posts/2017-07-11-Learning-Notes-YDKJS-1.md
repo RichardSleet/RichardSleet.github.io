@@ -279,8 +279,10 @@ foo.doAnother(); // 1 ! 2 ! 3
 从模块中返回一个实际的对象并不是必须的，也可以直接返回一个内部函 数。jQuery 就是一个很好的例子。jQuery 和 $ 标识符就是 jQuery 模块的公 共 API，但它们本身都是函数(由于函数也是对象，它们本身也可以拥有属 性)。
 * 这样就实现了访问API中的方法但是却又不会使变量污染
 * 这里我会写一些有趣的代码探讨一下(返回函数的性质)
-### 4.现代和未来的模块机制
-* apply方法 用来改变this指针的方法函数
+# 4.现代和未来的模块机制
+* 首先方便理解下面的代码我先总结一下js当中的四个调用模式
+
+
 ```js
 var MyModules = (function Manager() {
 var modules = {};
@@ -297,5 +299,33 @@ define: define,
 get: get };
 }
 )();
+
+//使用和定义
+MyModules.define( "bar", [], function() { function hello(who) {
+return "Let me introduce: " + who; }
+return {
+hello: hello
+}; });
+                  MyModules.define( "foo", ["bar"], function(bar) {
+                      var hungry = "hippo";
+   }
+return {
+awesome: awesome
+}; });
+                  var bar = MyModules.get( "bar" );
+                  var foo = MyModules.get( "foo" );
+                  console.log(
+                      bar.hello( "hippo" )
+); // Let me introduce: hippo foo.awesome(); // LET ME INTRODUCE: HIPPO
 ```
-* 这段代码不是很多以后需要补充一下
+* 这段代码的意思是通过返回闭包来封装一个模块,并将闭包的名字加入到列表当中,上文中的代码还加入了一个功能就是当这个闭包依赖于其他闭包的时候,需要加载其他闭包
+
+# 未来的模块机制
+* 在es6中会把一个文件当做一个模块,我个人理解就是用一个(function 文件名(导入的其他文件){})将整个文件代码括起来
+* es6的模块是比较稳定的,在之前的模块机制用函数来分装模块会导致只有在引擎执行代码的时候才会知道为什么错,但是es6的模块机制会被编译器识别也就会在执行知道将会有什么错误.
+* 这里对应的应该是require和import的区别因为在webstorm编写代码的时候,require即便是路径写的不对也不会在webstorm出现错误,但是使用import导入的时候如果不存在webstorm会提示你没办法导入,我想着就是webstorm后台为你编译进行提示错误吧
+* 还有一点好处是如果b块里面用了c,当b导入到a中c也就会自己导入
+* module和import的区别
+> import 可以将一个模块中的一个或多个 API 导入到当前作用域中，并分别绑定在一个变量 上(在我们的例子里是 hello)。module 会将整个模块的 API 导入并绑定到一个变量上(在 我们的例子里是 foo 和 bar)。export 会将当前模块的一个标识符(变量、函数)导出为公 共 API。这些操作可以在模块定义中根据需要使用任意多次。
+* 这里我会写一些有趣的代码探讨一下
+
