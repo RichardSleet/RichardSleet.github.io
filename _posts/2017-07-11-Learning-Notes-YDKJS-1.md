@@ -251,9 +251,9 @@ console.log( "Activating: " + name ); });
 # 2.循环和闭包 p49
 *这一部分作者真的是讲的很详细,不得不说我看懂了,如何维持var 的一个内部作用域是很重要的
 # 3.模块
-* 模块机制的实现其实就是闭包
-```js
+* 模块机制的实现其实就是闭包  
 
+```js
 function CoolModule() { 
 var something = "cool";
 var another = [1, 2, 3];
