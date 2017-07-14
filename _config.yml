@@ -30,7 +30,7 @@ paginate_path: "page/:num/"
 
 # Comment
 comment:
-    disqus: sleetshang.disqus.com
+    disqus: sleetshang
     # duoshuo: 
     
 # Social
