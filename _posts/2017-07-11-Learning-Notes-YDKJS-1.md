@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 你不懂的JS学习笔记-第以部分
+title: 你不懂的JS学习笔记-第一部分
 category: LearingNote-YDKJS
 ---
 # You don't KnowJS
