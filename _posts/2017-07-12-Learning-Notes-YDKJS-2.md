@@ -163,7 +163,8 @@ doFoo( obj.foo ); // "oops,global"
 * 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作找到 他应该赋值给谁赋值給fn,这同样是一个深拷贝.所以其实传入的是一个指向foo()函数的指针.当执行最后一行代码的时候.首先会去找doFoo的然后这个作用域没有就会再次查找顶层作用域得到a输出.
 
 #### 3.显示绑定
-* 简单点来说就是通过特有函数改变this的指向eg.call,apply 他们的第一个参数通常都是this需要绑定上的对象
+* 简单点来说就是通过特有函数改变this的指向eg.call,apply 他们的第一个参数通常都是this需要绑定上的对象  
+
 ```js
 function(){
     console.log(this.a)
@@ -190,8 +191,10 @@ bar() //2
 setTimeout(bar,100);//2
 
 bar.call(window)///2
-```
-还有一种方法就是创建一个可以循环重复使用的函数像笔者下面给的代码
+```  
+
+还有一种方法就是创建一个可以循环重复使用的函数像笔者下面给的代码  
+
 ```js
 function foo(something){
     console.log(this.a,something);
@@ -275,7 +278,7 @@ bac.val //p1p2
      var bar = foo()
 
 ### 会被忽略的情况
-* 1. 当显示绑定传入的是this为null或者为undefined的时候 等价于默认绑定
+#### 1. 当显示绑定传入的是this为null或者为undefined的时候 等价于默认绑定
 ```js
 function foo() { 
     console.log( this.a );
@@ -293,7 +296,7 @@ foo.apply( null, [2, 3] ); // a:2, b:3
 // 使用 bind(..) 进行柯里化 var bar = foo.bind( null, 2 ); bar( 3 ); // a:2, b:3
 //当然在es6 当中加入了 ...的语法可以替代这样的一个功能,然而翻译大大说这样并不能实现柯里化的相关语法
 ```
-* 2. 间接引用  
+#### 2.间接引用  
 
 ```js
 function foo() { 
