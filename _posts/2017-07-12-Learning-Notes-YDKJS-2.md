@@ -144,7 +144,7 @@ foo: foo };
 var bar = obj.foo; // 函数别名!
 var a = "oops, global"; // a 是全局对象的属性 bar(); // "oops, global"
 ```
-* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个深拷贝而并非浅拷贝(我也不知道这么说是不是很规范)
+* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个深拷贝而并非浅拷贝(我也不知道这么说是不是很规范)
 * 下面还有更晕的地方....
 ```js
 function foo() { 
