@@ -10,7 +10,7 @@ category: LearingNote-YDKJS
 
 ## 第一章 关于this
 
-### this是什么
+### 1. this是什么
 * 我的理解this就是上下文的含义比如说之所有再任何的地方书写setTimeout()函数,就是因为实际上是golobal.setTimeout()前面的是上下文,因为在上下文的范围内所以可以不用写.
 * 下面这种方式就是显示的传递上下文,但是并不常用
 ```js
@@ -23,7 +23,7 @@ var greeting = "Hello, I'm " + identify( context ); console.log( greeting );
 identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
 ```
-### 对this的误解
+### 2. 对this的误解
 * 首先this并不是函数本身
 ```js
 function foo(num) {
@@ -47,7 +47,7 @@ console.log( foo.count ); // 0 -- WTF?
 ```
 * 看到上面的代码确实晕了一下,但是仔细想想确实是对.一个最主要的因素是 ***谁调用,this指就向谁*** 所以this的在这里面就是指向全局变量,为全局变量添加了一个count的变里 这个变量和foo.count搞迷糊了
 
-### 对this的作用域得误解
+### 3. 对this的作用域得误解
 * 结合后面的例子肯能会比较好,但是值得注意的是this 在任何情况下都不指向函数的词法作用域意思就是
 ```js
 function foo(){
@@ -80,7 +80,7 @@ function foo() {
 }
 baz(); // <-- baz 的调用位置
 ```
-* this的四种绑定方式
+### this的四种绑定方式
 #### 1.默认绑定:
 * 下面的方式就是默认的绑定方式其中this执行的是全局对象
 ```js
@@ -100,7 +100,8 @@ var a = 2;
 foo(); // TypeError: this is undefined
 ```
 #### 2.隐式绑定:
-* 下面的代码就是隐式绑定,他会获取调用者的上下文
+* 下面的代码就是隐式绑定,他会获取调用者的上下文  
+
 ```js
 function foo() { 
 console.log( this.a );
@@ -128,9 +129,11 @@ obj2: obj2
 };
 
 obj1.obj2.foo(); // 42
-```
+```  
+
 * 在这样得引用链当中,上下文是不会被传递的所以只会成为调用他的人的上下文
-* 隐式丢失:很明想就是不小心绑定到了全局对象或者是一个undefinded对象上
+* 隐式丢失:很明想就是不小心绑定到了全局对象或者是一个undefinded对象上  
+
 ```js
 function foo() 
 { console.log( this.a );
