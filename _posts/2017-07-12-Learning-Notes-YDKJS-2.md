@@ -359,3 +359,234 @@ bar.call(obj2);//2
 * 简单来说箭头函数()=>{}在foo()内部,所有他的this始终是和foo()的this是一样的
 ,因为经过硬绑定绑定道了obj1,所以只能执行obj1
 
+
+## 第三章:对象
+### 对象的语法
+对象的定义可以有两种形
+#### 1.文字语法形式即对象字面量
+```js
+var myObj = {
+    key : value
+    //....
+}
+```
+### 2.构造型形式即是通过new
+```js
+var myObj = new Obj();
+myObj.key = value
+```
+* 以上两种方法基本上是一样的
+### js的类型
+#### js在es5当中的一些基本类型
+1. string
+2. number
+3. boolean
+4. null
+5. undefined
+6. object
+* 切记上面的前五种类型并不是对象.对象只是js的一个基本类型之一
+* 上面的基本类型的字面量是没有任何的方法的,之所以可以使用(str.length)是因为上面的类型默认被转换为下面的内置对象
+* string -> String, number->Number , boolean-> Boolean
+* null 和 undefined 没有构造形 
+#### 内置对象
+js语音提供了object类型的内置对象
+1. String (大写的呦)
+2. Number
+3. Boolean
+4. Object
+5. Function
+6. Array
+7. Date
+8. RegExp
+9. Error
+* 当然在es6当中不仅仅对已有的对象方法进行扩展而且加入了一些新的对象 eg Symbol 这些并不确定算不算是内置对象(Promise,Set,Map)
+* 笔者特别提到了这些对象虽然很想其他语言的Class但是她们其实并不算是严格意义上的对象,而只是普通函数而这些普通的函数可以通过调用new来进行构造化.
+
+### 内容
+* 简单的来说就是写在一个内容里面值并不是存在对象内部而是保留了这个指针(从技术角度 来说就是引用)指向真正存储的位置
+* . 和 []其实只是一个指向同一块内存的不同指针而已
+* 在对象中属性的名称永远都是字符串,使用其他类型写入都会被转为字符串
+```js
+var myObject = { };
+myObject[true] = "foo"; 
+myObject[3] = "bar"; 
+myObject[myObject] = "baz";
+myObject["true"]; // "foo"
+myObject["3"]; // "bar"
+myObject["[object Object]"]; // "baz"
+```
+
+#### 1.可计算的属性名
+* 所以使用[]访问属性自然而然的就是可以用表达式进行访问
+```js
+var prefix = "foo";
+var myObject = {
+[prefix + "bar"]:"hello", 
+[prefix + "baz"]: "world"
+};
+myObject["foobar"]; // hello
+myObject["foobaz"]; // world
+```
+* 笔者还简单的说了一下es6的symbol这里做下记录
+* 这里我会写一些有趣的代码探讨一下
+
+#### 2.属性和方法
+* 在JAVA和其他的语言当中,当访问的属性是一个函数的时候,大家会把他叫做方法.比如人的一个方法就是学习
+* 但是!在js中这样做是错的因为从技术角度来说，函数永远不会“属于”一个对象，所以把对象内部引用的函数称为“方法”似乎有点不妥。
+```js
+function foo(){
+    console.log('foo');
+}
+var  someFoo = foo;
+var myObject = {
+    someFoo:foo
+}
+foo; // function foo(){..}
+someFoo; // function foo(){..} 
+myObject.someFoo; // function foo(){..}
+```
+#### 3. 数组
+* 当然js的数组也不和java和c中的数组一样
+* js中数组更关心的是数组的下标就像指针一样指向一个存储内存,并不是和C一样直接存储连续的存储空间(这个不知道对不对)
+* js 完全没有其他语言数组该有的样子,你甚至完全可以给这个数组添加 下标不是int型的,但是这并不改变内置方法的计算比如.length
+```js
+var myArray = [ "foo", 42, "bar" ]; 
+myArray.baz = "baz";
+ myArray.length; // 3
+myArray.baz; // "baz"
+
+```
+* 但是这样其实是很危险的行为
+
+#### 4.对象的copy
+* 像java这样的函数就会有一个copy()的方法用来提供深拷贝和浅拷贝,但是js并不同js的深copy还是很复杂的
+```js
+function anotherFunction() { /*..*/ }
+var anotherObject = { 
+    c: true
+};
+var anotherArray = [];
+var myObject = { 
+    a: 2,
+    b: anotherObject, // 引用，不是复本! 
+    c: anotherArray, // 另一个引用!
+    d: anotherFunction
+};
+anotherArray.push( anotherObject, myObject );
+```
+* 上述的代码就是一个简单的浅赋值, 对于b,c,d来说就是三个同样的指针引用
+* 当我们想把这样的浅拷贝转换成深拷贝的时候,也就是说需要复制对应的内存里面的内容.所以这就会有一个死循环,比如在复制anotherObject和anotherArray的时候
+anotherArray引用了anotherObject和myObject复制myObject的时候又需要赋值anotherArray就产生了这样的死循环
+* 所以js的深拷贝一直没有明确的方法
+* 然而笔者给了一个特别巧妙的深复制的方法通过js序列化来进行深复制
+```js
+     var newObj = JSON.parse( JSON.stringify( someObj ) );
+```
+* 对于比较容易的浅复制js提供了Object.assign()方法
+```js
+    var newObj = Object.assign( {}, myObject );
+     newObj.a; // 2
+     newObj.b === anotherObject; // true
+     newObj.c === anotherArray; // true
+     newObj.d === anotherFunction; // true
+```
+#### 5.属性描述符
+* 一个对象的的属性不仅仅会存储属性的值而且还会存储属性的描述符
+```js
+
+var myObject = { a:2
+};
+ Object.getOwnPropertyDescriptor( myObject, "a" );
+// {
+// value: 2,
+// writable: true,
+// enumerable: true,
+// con gurable: true 
+// }
+```
+* 他会包含三个特性:writable(可写)、 enumerable(可枚举)和 configurable(可配置)
+当然还会有set,get和put
+* 但需要给一个属性访属性描述符的时候,可以使用Object.defineProperty方法
+```js
+var myObject = {};
+bject.defineProperty( myObject, "a", {
+        value: 2,
+w       ritable: true, 
+        configurable: true, 
+        enumerable: true
+} );
+myObject.a; // 2
+```
+##### 1.writable
+* 这个属性代表着是否可以修改属性的
+```js
+var myObject = {};
+Object.defineProperty( myObject, "a", {
+        value: 2,
+        writable: false, // 不可写! configurable: true, enumerable: true
+     } );
+myObject.a = 3;
+myObject.a; // 2
+```
+##### 2.configurable
+* 属性可以配置即可以使用defineproperty()方法修改属性描述符
+```js
+var myObject = { a:2
+};
+myObject.a = 3;
+myObject.a; // 3
+Object.defineProperty( myObject, "a", {
+value: 4,
+writable: true,
+configurable: false, // 不可配置!
+enumerable: true 
+} );
+myObject.a; // 4
+myObject.a = 5;
+myObject.a; // 5
+Object.defineProperty( myObject, "a", {
+         value: 6,
+        writable: true, 
+        configurable: true, 
+        enumerable: true
+} ); // TypeError
+
+```
+* 特别要强调的是更改这个属性以后就再也没法改动属性了,即单项操作.但是值得注意的是 我们还可以把 writable 的状态由 true 改为 false，但是无法由 false 改为 true。
+##### 3.Enumerable
+* 这个属性是指该属性是否可以被遍历比如for in 循环 还有es6当中的iterator的迭代器
+
+#### 6. 不变性
+* 如果你希望一个对象的所有直接属性都不可以被修改,那么你还需要禁止这个属性的引用(但是这样是不提倡的)
+```js
+myImmutableObject.foo; // [1,2,3]
+myImmutableObject.foo.push( 4 );
+myImmutableObject.foo; // [1,2,3,4]
+```
+##### 1.对象常量
+* writable:false 和 configurable:false 就可以创建一个对象常量
+##### 2.不可扩展
+* 如果禁止向对象添加属性可以使用 bject.prevent Extensions(..):
+```js
+var myObject = { 
+    a:2
+};
+Object.preventExtensions( myObject );
+myObject.b = 3;
+myObject.b; // undefined
+```
+##### 3.密封
+* Object.seal(..) 会创建一个“密封”的对象，这个方法实际上会在一个现有对象上调用 Object.preventExtensions(..) 并把所有现有属性标记为 configurable:false。
+但是可以修改属性的值
+
+##### 4.冻结
+* Object.freeze(..) 会创建一个冻结对象，这个方法实际上会在一个现有对象上调用 Object.seal(..) 并把所有“数据访问”属性标记为 writable:false，这样就无法修改它们 的值。
+* 以上方法都会不会对对象内部引用的其他引用起作用
+
+#### 7. [[Get]]
+```js
+var myObject = { 
+a: 2
+};
+myObject.a; // 2
+```
