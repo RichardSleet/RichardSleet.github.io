@@ -590,3 +590,206 @@ a: 2
 };
 myObject.a; // 2
 ```
+* 执行上面的代码的时候其实就是调用了get函数,首先查找是不是有同名的属性有就返回
+* 没有的时候:会查询原型链的方法
+
+#### 8. [[Put]]
+* 这个方法被触发的时候,取决于很多的因素
+> 1. 属性是否是访问描述符(参见3.3.9节)?如果是并且存在setter就调用setter。 
+> 2. 属性的数据描述符中writable是否是false?如果是，在非严格模式下静默失败，在
+严格模式下抛出 TypeError 异常。
+> 3. 如果都不是，将该值设置为属性的值。
+* 而当没有属性同样需要考虑原型链机制
+
+#### 9. Getter和Setter
+```js
+var myObject = {
+// 给 a 定义一个 
+getter get a() {
+    return 2; 
+}
+};
+Object.defineProperty( 
+    myObject, // 目标对象 
+    "b", // 属性名
+{
+// 描述符
+// 给 b 设置一个 getter
+get: function()
+{ 
+    return this.a * 2 
+},
+// 确保 b 会出现在对象的属性列表中
+enumerable: true
+}
+);
+myObject.a; // 2
+myObject.b; // 4
+```
+* 上面加入get关键词是属于隐式定义,defineProperty(..)属于显示定义,他们都创建了一个没有值的属性,但是返回值却被当做了这个值
+* 所以就会有一个问题这样创建的只有getter的属性无论给什么值都是get()return的返回(所以 set 操作是没有意义的)并且set操作没有被定义但是他会忽略赋值(put)操作
+```js
+var myObject = {
+    //给a定义一个getter
+    get a(){
+        return 2;
+    }
+    myObject.a = 2;
+    myObject.a; //2
+}
+```
+* 定义setter是很必要的,setter方法会覆盖属性默认的put()方法,由上面的情况可以知道getter和setter应该是成对出现的
+```js
+var myObject = {
+    get a(){
+        return this._a_
+    },
+    set a(val){
+        this._a_ = val * 2
+    }
+    myObject.a = 2;
+    myObject.a; // 4
+}
+```
+* 上述的_a_其实就是put默认存储的变量的位置  
+
+#### 10.存在性
+* 当一个属性被赋值为undefined后,我们对他再进行获取但是如何区分是值不存在的undefined还是我们设置的undefined呢
+```js
+var myObject = {
+    a:2
+}
+("a" in myObject)
+("b" in myObject)//false
+myObject.hasOwnProperty("a")//true
+```
+* js为我们提供了in 和 hasOwnProperty() 两种方法
+* 他们的区别是使用in的时候也会对原型链上的值进行检索,但是hasOwnProperty()就像名字一样只会检索自己的属性
+* 在使用hasOwnProperty()的时候特别需要注意的一种失败的情况就是hasOwnProperty是来自Object的一种委托但是,如果一个对象并没有得到Object的原型就会出现失败的情况.所以一种更加强硬的判断方法就是Object.prototype.hasOwnProperty. call(myObject,"a") 借助显示绑定.
+* in检查是否有某个值的时候实际是检查的属性名是不是存在,所以 4 in [1,2,4]这个代码得到的答案false
+
+##### 枚举
+* 当一个属性被设置为不可枚举的时候虽然可以访问到他的值,但是却不会出现在for...in..当中  
+* 需要特别注意的是 for...in 还可以遍历数值的索引,所以这个方法尽量只应用在对象上
+* propertyIsEnumerable(..) 方法相当于在上述hasOwnProperty(..)的基础上面继续判断是否满足 enumerable:true
+* Object.keys(..)会返回一个可以枚举属性的数组
+* Object.getOwnPropertyNames(..) 会返回一个数组包含的所有属性不管是不是可以枚举
+* Oject.keys(..),Object.getOwnPropertyNames(..),Object.hasOwnProperty(..)一样只会直接查找对象直接包含的属性
+
+### 遍历
+* for...in 可以遍历原型链上的所有的属性名,但是当我们需要遍历值的时候会用到迭代器
+forEach(...),every(...),和some(...)
+* 使用for循环的方式遍历数组其实本质上并不是指的遍历是通过下标指针去遍历值数组当中的  
+* 一下就是对应的回调函数处理不同的地方
+* 1. forEach(...): 会遍历数组中的所有值并忽略回调函数的返回值
+* 2. every(..) : 会一直运行直到回调函数返回 false(或者“假”值)
+* 3. some(..) 会一直运行直到回调函数返回 true(或者 “真”值)。
+* 特别强调的是数组的遍历是有序的但是对象的遍历是无序的,不同引擎for...in的遍历可能会不一样
+* 对于数组直接遍历像for一样直接遍历值可以使用es6的for....of方法,for...of会吊用迭代器对象的next()方法返回所有的值,因为数组有内置的 iterator迭代器我们可以手动遍历
+```js
+var myarray = [1,2,3]
+var it = myArray[Symbol.iterator]()//调用返回地带起的方法,得到迭代器
+
+it.next(); // { value:1, done:false } 
+it.next(); // { value:2, done:false } 
+it.next(); // { value:3, done:false } 
+it.next(); // { done:true }
+```
+* symbol 是es6为次加入的第七种数据类型切记不是内置对象 [关于symbol](http://www.infoq.com/cn/articles/es6-in-depth-symbols) 简单的来说就是为了防止属性重名使用的一种特殊标识符
+* 和数组不一样普通的对象是没有iterator的所以没有for...of遍历,但是我们依然可以在一个对象中加入iterator
+```js
+var myObject = {
+    a : 2,
+    b : 3 
+}
+Object.defineProperty(
+    myObject,
+    Symbol.iterator,
+    {
+    enumerable: false,
+    writable: false,
+    configurable: true,
+    //value 就是当前属性的值,这是一个会返回iterator的函数
+    value:function(){
+        var o = this;
+        var idx = 0;
+        var ks = Object.keys(o)
+        return {
+            next: function(){
+                return {
+                    value: o[ks[idx++]],
+                    done : (idx>ks.length)
+                }
+            }
+        }
+    }
+    }
+)
+// 手动遍历
+var it = myObject[Symbol.iterator]();
+it.next();//{value:2,done:false}
+it.next();//{value:3,done:false}
+it.next();//{value:undefined,done:true}
+
+// 用for...of遍历
+for (var v of myObject){
+    console.log(v);
+}
+```
+
+## 第四章:混合对象类
+* 这一整个章节都是一些理论的东西,所以摘要一些关键的地方
+### 类理论
+* 在其他的编程语言当中一般子类都是覆写父类的方法,但在js当中这么写可能会降低代码的可读性和健壮性
+#### js中的类
+* 虽然es6中的各种属性都在为js模拟一个相似的基于类的设计模式但是实际上两者完全不同的
+### 类的机制
+#### 类的构造
+* 笔者在这里把类和对象比作家住的蓝图和建筑,就像我在大一的时候理解的就是造钱的模具和钱的关系
+#### 构造函数
+* 想上面的举例决定每个大楼不一样的属性或者是钱的唯一的编号就是构造函数需要赋予的不同的东西,构造函数是属于类的
+### 类的继承
+* 就如儿子和爸爸一样,子类会继承父类的一些特性.但是这些特性是相互分开的,即使父类再次改变也不会影响子类的但是父类和子类斌不是上述的蓝图和建筑的关系.
+#### 1.类的多态
+* 多态的另一个方面是，在继承链的不同层次中一个方法名可以被多次定义，当调用方法时 会自动选择合适的定义。
+* 特别注意的是像别的语言一样使用super调用父类的的构造函数是没有问题的因为构造函数是属于类的,但是在js当中恰恰相反'类'(注意引号)是属于构造函数的.而js当中每一个构造函数都会有一个.prototype 的对象,因此并没有什么关系(es6可以通过super(调用)而且是必须的)
+#### 2.多重继承
+* 对于java等一些语言只支持单继承,但是js本身是没有提供"多重继承"的功能的,因为多重继承更为复杂,但是却可以使用其他方法来实现多继承
+### 混入
+* 值得注意的是js当中只有对象并不存在可以实例化的'类',所以自然不能像蓝图对建筑一样赋值重新建造一份.但是js确可以模拟这样的复制行为即是混入.分为显示混入和隐式混入
+* 在大多数框架中被称为extend()
+```js
+function extend(sourceObj,targetObj){
+    for(var key in sourceObj){
+        //只赋值存在的
+        if(!(key in targetObj)){
+            targetObj[key] = sourceObj[key];
+        }
+    }
+    return targetObj;
+}
+var Vehicle = {
+    engines:1,
+    iginition: function(){
+        console.log("Turning on my engine");
+    },
+    drive: function(){
+        this.iginition();
+        console.log("Steering and moving forward!");
+    }
+}
+var Car = extend(Vehicle,{
+    wheels:4,
+    drive: function() { 
+        Vehicle.drive.call( this ); 
+        console.log("Rolling on all " + this.wheels + " wheels!");}
+})
+```
+* js中只有对象没有类,而对象就是通过函数得到的.但是上述的这样的做法是一个浅复制的操作.函数只是获取了一个iginition()的引用,而driver没有被复制实现了了子类对父类的重写.
+
+#### 1. 再次理解js的多态
+* 在上书例子中的这样的  Vehicle.drive.call( this ); 语句就可以当做显示多态,而之前笔者还提到了一种下对多态就是在子类中调用的到父类对象调用父类复制过来的方法.而这个this的绑定确是子类
+* 在es6以前也是没有多态机制的,所以必须通过指名调用对象并调用函数,但是直接使用有会将其绑定在父类对象上,所以执行call.
+* 因此正是因为存在同名的函数才需要更加复杂的显式伪多态方法。
+* 接下来笔者说的话我就没看懂了 P136
+* * 这里我会写一些有趣的代码探讨一下
