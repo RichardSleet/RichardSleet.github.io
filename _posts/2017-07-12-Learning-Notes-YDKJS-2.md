@@ -18,7 +18,8 @@ function identify(context) {
 return context.name.toUpperCase();
 }
 function speak(context) {
-var greeting = "Hello, I'm " + identify( context ); console.log( greeting );
+var greeting = "Hello, I'm " + identify( context ); 
+console.log( greeting );
 }
 identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
@@ -45,7 +46,7 @@ if(i>5){
 // foo 被调用了多少次?
 console.log( foo.count ); // 0 -- WTF?
 ```
-* 看到上面的代码确实晕了一下,但是仔细想想确实是对.一个最主要的因素是 ***谁调用,this指就向谁*** 所以this的在这里面就是指向全局变量,为全局变量添加了一个count的变里 这个变量和foo.count搞迷糊了
+* 看到上面的代码确实晕了一下,但是仔细想想确实是对.一个最主要的因素是 ***谁调用,this指就向谁*** (虽然这么说容易理解但是有时候你要弄懂谁调用谁也是一个很麻烦的事情)所以this的在这里面就是指向全局变量,为全局变量添加了一个count的变里 这个变量和foo.count搞迷糊了
 
 ### 3. 对this的作用域得误解
 * 结合后面的例子肯能会比较好,但是值得注意的是this 在任何情况下都不指向函数的词法作用域意思就是
@@ -90,7 +91,8 @@ function foo() {
 var a=2; 
 foo(); // 2
 ```
-* 像上面一样的通过func()绑定的方式为默认绑定.在严格模式下是不会绑定全局变量的
+* 像上面一样的通过foo()绑定的方式为默认绑定,简单来说就是用当前的作用域的this来调用foo()在严格模式下是不会绑定全局变量的.
+* 假设去医院拍摄胸片是一种行为,但是这个行为是一定有人来做的.比如我去拍胸片,所以拍胸片的资料都是我本人的.也就是this绑定谁,就可以靠this获得谁的上下文环境
 ```js
 function foo() { 
 "use strict";
@@ -131,27 +133,33 @@ obj2: obj2
 obj1.obj2.foo(); // 42
 ```  
 
+* this只能进行一次绑定,并不能传递.
 * 在这样得引用链当中,上下文是不会被传递的所以只会成为调用他的人的上下文
 * 隐式丢失:很明想就是不小心绑定到了全局对象或者是一个undefinded对象上  
 
 ```js
 function foo() 
-{ console.log( this.a );
+{ 
+    console.log( this.a );
 }
 var obj=
-{ a: 2,
-foo: foo };
+{ 
+    a: 2,
+    foo: foo 
+};
 var bar = obj.foo; // 函数别名!
-var a = "oops, global"; // a 是全局对象的属性 bar(); // "oops, global"
+var a = "oops, global"; // a 是全局对象的属性 
+bar(); // "oops, global"
 ```
-* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个深拷贝而并非浅拷贝(我也不知道这么说是不是很规范)
+* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个浅拷贝.所以这时bar启用的实际上是一个默认绑定
 * 下面还有更晕的地方....
 ```js
 function foo() { 
     console.log( this.a );
 }
 function doFoo(fn) {
-// fn 其实引用的是 foo fn(); // <-- 调用位置!
+// fn 其实引用的是 foo 
+    fn(); // <-- 调用位置!
 }
 var obj={ 
 a: 2,
@@ -160,7 +168,7 @@ foo: foo
 var a = "oops, global"; // a 是全局对象的属性 
 doFoo( obj.foo ); // "oops,global"
 ```
-* 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作找到 他应该赋值给谁赋值給fn,这同样是一个深拷贝.所以其实传入的是一个指向foo()函数的指针.当执行最后一行代码的时候.首先会去找doFoo的然后这个作用域没有就会再次查找顶层作用域得到a输出.
+* 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作(因为这里会进行参数的赋值)找到他应该赋值给谁赋值給fn,这同样是一个浅拷贝.所以其实传入的是一个指向foo()函数的指针.当执行最后一行代码的时候.首先会去找doFoo的然后这个作用域没有就会再次查找顶层作用域得到a输出.
 
 #### 3.显示绑定
 * 简单点来说就是通过特有函数改变this的指向eg.call,apply 他们的第一个参数通常都是this需要绑定上的对象  
@@ -313,7 +321,7 @@ var p = {
 o.foo(); // 3
 (p.foo = o.foo)(); // 2
 ```
-* 这里我会写一些有趣的代码探讨一下
+* `1
 
 ### 软绑定
 * 因为经过硬绑定的函数是没法通过隐式和显式绑定绑定对象的所以说就出现了软绑定的一些概念.
@@ -337,7 +345,7 @@ if(!Function.prototype.softBind){
 }
 ```
 * 我承认我看不懂了
-* 这里我会写一些有趣的代码探讨一下
+* `1
 
 ### 特殊的箭头函数
 * 箭头函数最大的特例就是不属于 this的四种绑定的任何一种,而是根据所在位置的外层作用域所决定的.
@@ -369,13 +377,16 @@ var myObj = {
     key : value
     //....
 }
+typeof myObj //object
 ```
 ### 2.构造型形式即是通过new
 ```js
 var myObj = new Obj();
 myObj.key = value
+typeof myObj //object
 ```
-* 以上两种方法基本上是一样的
+* 以上两种方法基本上是一样的都回创建一个object(基本类型的对象).并且你可以通过浏览在浏览器中的公有链接_proto_去访问他的原型.当然实际上就是私有的[[prototype]].因为在es3之前并没有一个方法可以访问到[[prototype]].而在浏览器当中会为你提供一个_proto_的方法去访问原型链.
+* 十分特别及其强烈的提醒这个[[prototype]]和prototype不是一个东西!
 ### js的类型
 #### js在es5当中的一些基本类型
 1. string
@@ -384,12 +395,16 @@ myObj.key = value
 4. null
 5. undefined
 6. object
+* 笔者虽然没有提到,但是如果按照typeof的返回值来看null是属于object.但是我们并不能使用typeof来看这个问题.因为typeof在这个语法设计的时候也是有缺陷的.但是null是不是object的一种特殊类型是一个很模糊的边缘.笔者也并没有提到这里.从严格意义上说null自己就是一个数据类型.
+* 其次再来说说function,严格意义上讲function并不是基本类型之一.但是function确实拥有object所有的类型,所以spec并没有将它作为一个基本的function类型.而是把它作为object,他是一个特殊的object,你很名显得可以知道fucntion类型都会有[[prototype]]  
+* 当然在es6还加入了一个新的基本类型 Symbol 
 * 切记上面的前五种类型并不是对象.对象只是js的一个基本类型之一
 * 上面的基本类型的字面量是没有任何的方法的,之所以可以使用(str.length)是因为上面的类型默认被转换为下面的内置对象
+* 还有一点要说的是 前五种是值类型而第六种是引用类型.--来自望远镜的支援
 * string -> String, number->Number , boolean-> Boolean
 * null 和 undefined 没有构造形 
 #### 内置对象
-js语音提供了object类型的内置对象
+js语音提供了object类型的内置对象(当然使用typeof的时候会返回function)
 1. String (大写的呦)
 2. Number
 3. Boolean
@@ -399,11 +414,15 @@ js语音提供了object类型的内置对象
 7. Date
 8. RegExp
 9. Error
-* 当然在es6当中不仅仅对已有的对象方法进行扩展而且加入了一些新的对象 eg Symbol 这些并不确定算不算是内置对象(Promise,Set,Map)
-* 笔者特别提到了这些对象虽然很想其他语言的Class但是她们其实并不算是严格意义上的对象,而只是普通函数而这些普通的函数可以通过调用new来进行构造化.
-
+* 上述的内置对象确实是object的数据类型但是使用typeof返回的时候得到的是function,所以处于更高的理解.将这些理解为function函数更为好.
+* 你可能回联想到(反正我是这么想了Fuction和Object会有包含的关系么)[具体可以看这里](https://stackoverflow.com/questions/9959727/proto-vs-prototype-in-javascript)简单来说你会发现原型链的最顶层就是Object.prototype.就是上述内置对象Object函数的prototpye对象属性.这也可能就是js当中唯一一个_proto_是null的了.你可以输入下面代码看看真伪
+```js
+console.log(Object.prototype.__proto__)
+```
+* 而Function和Object的区别在stackoverflow里面的图示已经很明白了.所以总结一下:一个函数例如函数foo的原型是指向Fuction.prototype的,但是foo.prototype._proto_是指向Object.prototype.而Fuction.prototype是指向Object.prototyp的.所以区分义object是不是一个function我想应该就是他有没有prototype的属性(当然有时候经过Function.prototype.bind进行绑定也是没有prototype属性的)
+* 醉醉重要的是_proto_永远只会指向纯纯粹粹的对象,而不是fucntion.这也迎合了null算成Object的一个类型会更好.
 ### 内容
-* 简单的来说就是写在一个内容里面值并不是存在对象内部而是保留了这个指针(从技术角度 来说就是引用)指向真正存储的位置
+* 简单的来说就是写在一个对象里面值并不是存在对象内部而是保留了这个指针(从技术角度 来说就是引用)指向真正存储的位置因为function就是值类型呀.
 * . 和 []其实只是一个指向同一块内存的不同指针而已
 * 在对象中属性的名称永远都是字符串,使用其他类型写入都会被转为字符串
 ```js
@@ -427,11 +446,37 @@ var myObject = {
 myObject["foobar"]; // hello
 myObject["foobaz"]; // world
 ```
-* 笔者还简单的说了一下es6的symbol这里做下记录
-* 这里我会写一些有趣的代码探讨一下
+##### Symbol
+* 这里简单的插入介绍一下symbol,当你像上面一样使用属性的时候,你会发现属性的名字的重复是一个很大的问题.所以在es6当中就引入了Symbol这样一个**基本类型**,同时提供了Symbol的内置函数或对象来创建symbol类型
+```js
+var a = Symbol();
+var b = Symbol();
+//传入参数可以用来描述symbol类型
+var c = Symbol("I am peter");
+var d = Symbol("I am peter");
 
+a === b //false
+c === d //false
+```
+* 现在用他来结局我们实际的问题,加入到我们任何一个认为他有可能出现属性重名的对象中
+```js
+var mySymbol = new Symbol();
+var a = {};
+a[mySymbol] = 'hello!'
+
+var a = {
+    [mySymbol]:'hello!'
+}
+
+var a = { }
+Object.defineProperty(a,mySymbol,{
+    value:'Hello!'
+})
+```
+* 上面间的介绍了一下用symbol作为属性名的三种方法,这来自于阮一峰大大的es6一书上,但让还有之前的symbol,iterator例子当中的创建symbol的方法.
+* 切记的是symbol是不能狗使用.运算符的因为.后面会默认为字符串,而并非symbol类型.
 #### 2.属性和方法
-* 在JAVA和其他的语言当中,当访问的属性是一个函数的时候,大家会把他叫做方法.比如人的一个方法就是学习
+* 在JAVA和其他的语言当中,当访问的属性是一个函数的时候,大家会把他叫做方法.比如人的一个方法就是学习,而这个方法是局限于人内部的
 * 但是!在js中这样做是错的因为从技术角度来说，函数永远不会“属于”一个对象，所以把对象内部引用的函数称为“方法”似乎有点不妥。
 ```js
 function foo(){
@@ -702,6 +747,7 @@ var myObject = {
     a : 2,
     b : 3 
 }
+//这里加入的Symbol.iterator斌不是一个string类型而是es6加入的新的类型symbol.确保这事一个唯一的属性字段.
 Object.defineProperty(
     myObject,
     Symbol.iterator,
@@ -792,4 +838,245 @@ var Car = extend(Vehicle,{
 * 在es6以前也是没有多态机制的,所以必须通过指名调用对象并调用函数,但是直接使用有会将其绑定在父类对象上,所以执行call.
 * 因此正是因为存在同名的函数才需要更加复杂的显式伪多态方法。
 * 接下来笔者说的话我就没看懂了 P136
-* * 这里我会写一些有趣的代码探讨一下
+* `1
+#### 2. 混合复制
+```js
+//另一种混合函数,但是肯能会被重写,原理就是先进行复制
+function mixin(sourceObj,targetObj){
+    for(var key in sourceObj){
+        targetObj[key] = sourceObj[key];
+    }
+    return targetObj
+}
+var Vehicle={
+    //...
+}
+//先把值进行复制
+var Car = mixin(Vehicle, { } )
+mixin({
+    wheels:4,
+    drive:function(){
+
+    }
+},car)
+```
+* 接下来笔者说的话我就没看懂了,我觉得并没有区别呀 P136
+* `1
+
+#### 3. 寄生继承
+```js
+function Vehicle(){
+    this.engines = 1
+}
+Vhicle.prototype.igition = function(){
+    console.log("Turning on my engine.")
+}
+Veicle.prototype.drive = function(){
+    this.ignition();
+    console.log("Steering and moving forward!")
+}
+// "寄生"Car
+fucntion Car(){
+    var car = new Vehicle();
+    /// 对car进行定制
+    car.wheels = 4
+    //保存到Vehicle::drive() 的特殊引用
+    var vehDrive = car;
+    // 重写 Vehicle::drive()
+
+}   
+```
+* 看来需要先看看原型在解决这些问题了 P136
+* `1
+
+## 第五章:原型
+### [[Prototype]]
+* js的所有的对象即object都会有一个特殊的内置属性就是[[Prototype]],在我的理解这个[[Prototype]]指向他的原型对象(纯纯粹粹的object),绝大部分对象在创建的时候会被赋予一个值.
+* 这里可能会联想到_proto_和prototype到底有什么区别,[点我看看](https://stackoverflow.com/questions/9959727/proto-vs-prototype-in-javascript)
+```js
+var myObject = {
+    a:2
+}
+myObject.a//2
+```
+* 梳理一下使用[[Get]]操作的整个过程
+> 1. Get首先会检查对象本身有没有这个属性有的话就是使用他
+> 2. 当没有的时候Get就会获取原型链上的值进行遍历,这会查找整条[[Prototype]]链
+,如果还没有的话就会返回undefined
+
+* 对于for...in操作: 同样是和Get查找原型链是一样的但是,只能查找enumerable可枚举的类型
+* 对于 in 操作:同样是会遍历所有的原型链上的属性名
+
+#### Object.prototype
+* 所有的普通的[[Prototype]] 链最终都会指向内置的Object.prototype,也就是内置对象Object的prototype属性.这赶脚就像是java中的顶级父类一样Object,即便js没有提供类的概念.但是Object.prototype会像java的父类一样提供许多的功能函数比如 toString(),valvueOf()等等
+
+#### 属性的设置和屏蔽
+* 这里我们梳理一下使用[[Put]]添加一个属性的情况
+> 1. 比如myObject.foo = "bar";这条语句会首先的查找myObject中的属性是否有"bar"属性名如果有,就进行setter操作  
+> 2. 当没有的时候噗就会查找原型链如果原型链的上层出现了这个属性就会产生三种情况 1.上层foo 具有普通数据的访问属性并且 writable:true 那么他会在myObject中添加foo.而这个下层的属性会屏蔽上层.2.上层foo 具有普通数据的访问属性并且只读读 writable:false 则这个赋值就是失败的并且如果在严格模式就会报错3.上层foo是一个setter,则这个setter一定会被调用.
+> 3. 最后当一直查询原型链最头为止还是没有就会创建一个myObject里面的foo
+
+* 切记上面的做法是在讨论 = 赋值的情况
+* 所以如果上层属性和下层属性同名下层不一定会屏蔽上层,比如上述第2哥情况2,3小条,因为对于不可写的属性和只有setter的属性会有自己的处理方法的
+* 尤其来说说只读属性的处理情况,其实会出先这样的情况主要为了模拟'类'属性的继承.可以foo理解为父类的属性,myObject继承了foo的属性(但是他并没有在面向对象语言中的赋值属性,本质来书myObject是不存在foo的)
+
+* 隐式并不是一个很好的操作,甚至你有时候会需要注意到隐式屏蔽的一些状况
+```js
+var anotherObject = {
+    a:2
+};
+//下面的Object.create会把myObject关联anotherObject的原型
+var myObject = Object.create(anotherObject);
+anotherObject.a //2
+myObject.a //2
+
+anotherObject.hasOwnProperty("a"); //true
+myObject.hasOwnProperty("a");//false
+//隐式的属性屏蔽
+myObject.a = myObject.a + 1 
+//这里很明显两访问的不是上一个原型链的值
+anotherObject.a//2
+myObject.a //3
+myObject.hasOwnProperty( "a" ); // true
+```
+* 上面myObject.a = myObject.a + 1 出现了隐式屏蔽,流程是首先灯饰右边的myObject.a 会执行get操作查找原型链,然后当赋值给左边的时候会先进行[[Put]],发现父原型中存在"a",所以第一种情况设置屏蔽属性并且设置为3.
+
+### 类
+* 某种意义上说js才是一个"面向对象的语言"(因为他连类都没有好么)也就是我们之前提到的工程的蓝图和造钱的模子
+#### 类函数
+* 虽然没有类但是js一直在模范类的使用方法.为了这种理念.所有的函数都会有一个的共有不可枚举的属性prototype.**切记是所有的函数,只是函数**
+```js
+function foo(){
+    //,,,,
+}
+foo.prototype
+```
+* 上面的这个函数的prototype原型属性(和[[prototype并不一样]]).我最开始就把原型理解成他的Class.但是这样做还是有很大的缺陷的.其实他只是一个用来关联对象的东西.
+```js
+function Foo(){
+    // ...
+}
+var a = new Foo();
+Object.getPrototypeOf( a ) === Foo.prototype; // true
+```
+ * 解释一下上面的代码:当调用new()的时候首先执行的就是new绑定的步骤
+ 1. 创建(或者说构造)一个全新的对象。
+ 2. 这个新对象会被执行[[原型]]连接。//[[protutype]]
+ 3. 这个新对象会绑定到函数调用的this。
+ 4. 如果函数没有返回其他对象，那么new表达式中的函数调用会自动返回这个新对象。
+ * 在第二步的时候就是会新对象的[[prototype]]会被赋予引用的链接,也就是关联到那个Foo()函数的prototype上面.
+ * 特别注意,js的new和面向对象的new完全不同.因为你不可能创建一个类的多个实例,只能创建一个对象的多个对象,而他们的[[prototype]]关联的是同一个对象,所以他们不像儿子从爸爸得到了特有的基因,当爸爸基因改变的时候儿子则不会变.他们之间还是存在相互的关联的.
+ * 生成的a的对象会关联 Foo.[[prototype]]的对象.笔者还提到了调用new的时候,其实本意并不是创建这样的一个关联这个关联只是一个意外的结果
+ * 所以js当中实际上不存在类和对象这样一个不是平级的概念,而全部都是对象.所以js中绝对不存在继承!!! 
+ * 当你用原型关联了以后,js的委托就可以通过这样的一个关联调用你关联的对象的方法
+
+ #### 构造函数
+ ```js
+ function Foo(){
+     // ...
+ }
+ Foo.prototype.constructor === Foo ///true
+ var a = new Foo();
+ a.constructor === Foo //true
+ ```
+ * 看上面的代码 Foo.prototype 默认在声明function时有一个公用不可枚举的属性 .constructor 而这个属性就是函数Foo.随时随地的结合[图示](https://stackoverflow.com/questions/9959727/proto-vs-prototype-in-javascript)
+ * 其实a中并没有constructeor这个属性.但是a的[[prototype]]指向了Foo.prototype.所以自然而然的会得到原型链上的值
+ * 构造函数就是和普通的函数是一样的.构造函数只不过是一个普通的函数调用new以后相对于对象而言的一种函数,而且当前面加上一个new的时候他就会用一个构造对象的形式去调用他.但依然会调用!!!
+ ```js
+ function NothingSpecial(){
+     console.log("You will see me")
+ }
+ var a = new NothingSpeacial();
+ //"You will see me"
+ a;//{}
+ ```
+ #### 技术
+ ```js
+ function Foo(name){
+        this.name = name
+ }
+ Foo.prototype.myname = function(){
+     return this.name;
+ }
+ var a = new Foo("a")
+ var b = new Foo("b";
+ a.myname()//"a"
+ b.myName()//"b"
+ ```
+ * 来看看上面的这些代码,上面的代码展示了两种"面向类的"技巧
+ 1. this.name = name 是给每一个对象的值也就a和b所以为什么要有this这样一个东西呢.就是在你new的时候需要对你造出来的这个对象操作一些不一样的方式就像每个钱都会有自己的编码一样.而this就在这里绑定代指这样你创建的对象
+ 2. 而Foo.prototype.myname这样的一个操作很明显是给函数Foo()的prototype赋值.又因为a和b都会超找原型链,所以自然而然的就会调用到 Foo.prototype.myname这样一个函数.
+ 而这又采取了隐式绑定/new绑定
+ * `1 这里我并不是很确定采用了什么绑定  
+
+## (原型)继承
+* 虽然js当中没有绝对的继承,但是!我们依然可以模拟出来
+```js
+function Foo(){
+    this.name = name;
+}
+Foo.prototype.myName = function(){
+    return this.name
+}
+function Bar(name,label){
+    Foo.call(this,name);
+    this.label = label;
+}
+
+Bar.prototype = Object.create(Foo.prototype);
+
+Bar.prototype.myLable = function(){
+    return this.label
+}
+var a = new Bar("a","obj a")
+
+a.myName();//"a"
+a.myLabel();//"obj a"
+```
+* 这里Bar.prototype 会被替换为一个空对象而这个空对象的原型执行Foo.prototype方法
+```js
+// 和你想要的机制不一样! 
+// 这样写的意思是Bar.prototype会直接指向Foo.prototype.但是并不会创建一个关联的对象
+Bar.prototype = Foo.prototype;
+// 基本上满足你的需求，但是可能会产生一些副作用 :( 
+// 这样写Bar.prototype 确实指向了Foo但是有个巨大的问题就是Foo()是会被执行的(比如写日志、修改状态、注 册到其他对象、给 this 添加数据属性，等等)这就会影响到Bar
+Bar.prototype = new Foo();
+```
+* 在es6前后有两个办法可以啊改变这样的一个状态
+```js
+// ES6之前需要抛弃默认的Bar.prototype
+     Bar.ptototype = Object.create( Foo.prototype );
+// ES6开始可以直接修改现有的 Bar.prototype 
+    Object.setPrototypeOf( Bar.prototype, Foo.prototype );
+```
+
+### 检查"类"关系
+```js
+function Foo(){
+
+}
+Foo.prototype.blah =....;
+var a = new Foo()
+```
+* 上面的代码可以通过 a instaceof Foo 来确定左边的对象是不是右边的函数构造出来的.也就是在a的原型链中是否指向Foo.prototype 的对象
+* 如果你想比较两个对象之间的关系千万不要使用下面的方法
+```js
+function isRelatedTo(o1,o2){
+    function F(){};
+    F.prototype = 02;
+    return o1 instanceof F
+}
+var a = { }
+var b = Object.craete(a);
+isRelatedTo(b,a)//true
+```
+* 上面的代码最大的问题就是实际上o1并不是由F构造的!!!所以即使得到了我们想要的但是它还是有弊端的
+* `1 没搞懂有什么弊端
+* `1 没搞懂有什么是js的反射
+* 除了instaceof 还可以利用js的[[prototype]]反射机制的原理.isPrototypeOf(a)实际上就是看看a的整条[[Prototype]]链中有没有Foo.prototype.这一种方法并不需要间接的引用函数(Foo)
+```js
+Foo.prototype.isPrototypeOf( a ); // true
+```
+
+
+
