@@ -1132,7 +1132,8 @@ XYZ.outputTaskDetails = function() {
 
 ### 更简洁的设计.
 * 这里展现一下笔者是如何通过对象的关联来简洁代码的.
-* 如果有一个功能需要登录后提交表单进行验证.则在MVC中的C中需要控制两个逻辑流程1,操作form表单得到信息.2.网络请求的控制.按照面向类的理论
+* 如果有一个功能需要登录后提交表单进行验证.则在MVC中的C中需要控制两个逻辑流程1,操作form表单得到信息.2.网络请求的控制.按照面向类的理论  
+
 ```js
 // 从这里面抽取的共同的行为作为一个类
 function Controller() {
@@ -1224,14 +1225,16 @@ Controller.prototype.failure.call(this,"Auth Failed: " + err);
 var auth = new AuthController(	
 	new LoginController()
 );
-auth.checkAuth();
-```
+auth.checkAuth();  
+```  
+
 > 所有控制器共享的基础行为是success(..)、failure(..) 和 showDialog(..)。 子 类 LoginController 和 AuthController 通过重写 failure(..) 和 success(..) 来扩展默认基础类行为。此外，注意 AuthController 需要一个 LoginController 的实例来和登录表单进行 交互，因此这个实例变成了一个数据属性。
 
 * 接下来上面的代码我们用对象的关联来简化这段代码
 * 首先我们可以分析按照面向类的观点这样的一个代码是非常需要抽象出来一个controller从而有不同的实现的,但是在对象关联的设计模式当中并不是这样的.
 * 简单的来说 上述面向类的思想就是A继承C,L也继承C.A在使用的时候又需要L中的行为来决定L和A公有C的行为(就是A中的checkAuth方法成功就是执行C的成功失败就是执行C的失败).总结一下就是A的之所以要继承C就是因为L的行为导致的所以你会发现我们完全可以把中间的A继承C和L继承C改为A关联L就行了
-* 如果你想要说为什么A不能直接的继承L呢?如果A继承L在这种逻辑当中A需要覆写L的基础行为.但是A还需要根据L的行为来让L显示信息(也就是A需要通过checkAuth得到L的结果决定L当中是不是应该执行成功还是失败).所以这样的继承也就没有什么用处.
+* 如果你想要说为什么A不能直接的继承L呢?如果A继承L在这种逻辑当中A需要覆写L的基础行为.但是A还需要根据L的行为来让L显示信息(也就是A需要通过checkAuth得到L的结果决定L当中是不是应该执行成功还是失败).所以这样的继承也就没有什么用处.  
+
 ```js
 var LoginController = { 
 errors: [],
