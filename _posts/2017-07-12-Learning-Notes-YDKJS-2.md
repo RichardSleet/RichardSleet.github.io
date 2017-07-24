@@ -25,7 +25,8 @@ identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
 ```  
 
-### 2. 对this的误解
+### 2. 对this的误解  
+
 * 首先this并不是函数本身
 ```js
 function foo(num) {
