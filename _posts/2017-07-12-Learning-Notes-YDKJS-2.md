@@ -23,7 +23,7 @@ console.log( greeting );
 }
 identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
-```  
+```
 
 ### 2. 对this的误解  
 
