@@ -1078,5 +1078,246 @@ isRelatedTo(b,a)//true
 Foo.prototype.isPrototypeOf( a ); // true
 ```
 
+## 第六章:行为委托
+* 因为这一章更多的是思想模式和理论的概念,所以就简单的自己总结一下.
+### 比较一下类理论和委托理论
+#### 1.类理论: 
+* 我理解的类理论就是存在一个类和对象两个概念,只有类才能创建对象.是一个上下级别的概念.只有类才能实现继承和多态.比如说如果一部分东西拥有共同的方法则这个公共的方法应该作为基类.而对于不同的部分会有不同的重写.也就是子类的特殊化.这就是类也就是所谓的面向对象的设计.
+```js
+class Task{
+    id;
+    // 构造函数 Task()
+    Task(ID) { id = ID; } 
+    outputTask() { output( id ); }
+}
+class XYZ inherits Task { 
+    label;
+    // 构造函数 XYZ()
+    XYZ(ID,Label) { super( ID ); label = Label; } 
+    outputTask() { super(); output( label ); }
+}
+class ABC inherits Task { // ...
+}
+```
+* 上面是书中的伪代码,值得强调的一点事.这种类理论,父类的公用的东西实际上是在每个继承类的对象的内部,每一个都是相互独立的.比如由XYZ类构造的对象会赋值一份Task,和XYZ中的行为.
+
+#### 2.委托理论:
+* 但是js当中的理论并不是这个样子的.js采用的委托理论.是因为js当中只有对象没有类.js当中创建对象不需要依靠class就像之前所说的那样子直接用{}创建对象字面量.但是js可以依靠对象之间的委托来实现这样的一个继承多态的功能.
+* 同理我们可以同样的把一个共同的部分作为一个对象,而其他和他平等的对象实际上是于这个抽出共同行为的对象相互关联.每个对象不同的部分由对象本身来实现.而如果需要执行相同的地方可以在这个对象中调用关联的抽出共同行为的对象的方法.
+* 这么说可能会比较绕口,来看一个代码体验一下.
+
+```js
+//正如同我们刚才所讲的创建一个对象,抽出共同的行为
+Task={
+setID: function(ID) { this.id = ID; },
+outputID: function() { console.log( this.id ); }
+}
+// 将一个对象和这个公共行为抽出来的对象相互关联(对象之间是平等的)
+XYZ = Object.create( Task );
+// 为不同的地方添加不同的对象
+XYZ.prepareTask = function(ID,Label) { 
+    this.setID( ID );
+    this.label = Label;
+};
+XYZ.outputTaskDetails = function() { 
+    this.outputID();
+    console.log( this.label );
+};
+```
+* 根据js的[[prototype]]机制如果当需要调用共同的行为也就是Task中的方法,对象中肯定没有实现这样的一个方法,所以就会首先查询关联的对象有没有这个方法.于是查询Task则会检测到共同的方法对其调用.
+* 对于上面的代码出现了id和label两个成员变量.他们都是存储在XYZ的内部而并不是Task!如果每一个对象都需要向Task里面存储东西的话.那就amzing了.
+* 所以前面就会说为什么你再继承的时候要避免在对象中写重名的方法,这样你就会完全屏蔽掉你关联对象的方法.
+* 上述中之所以调用Task的setID方法会在XYZ中出现ID是因为这里使用了前面提到的this的隐式绑定.
+* 当你需要更加区分两者的差别的时候[P172也的图会给你答案](https://github.com/getify/You-Dont-Know-JS/blob/master/this%20%26%20object%20prototypes/ch6.md)
+
+### 更简洁的设计.
+* 这里展现一下笔者是如何通过对象的关联来简洁代码的.
+* 如果有一个功能需要登录后提交表单进行验证.则在MVC中的C中需要控制两个逻辑流程1,操作form表单得到信息.2.网络请求的控制.按照面向类的理论
+```js
+// 从这里面抽取的共同的行为作为一个类
+function Controller() {
+this.errors = []; 
+}
+// 在这个共同的类当中加入共同的行为
+Controller.prototype.showDialog(title,msg) 
+{ // 给用户显示标题和消息
+
+};
+Controller.prototype.success = function(msg) {
+this.showDialog( "Success", msg ); 
+};
+Controller.prototype.failure = function(err) { 
+this.errors.push( err );
+this.showDialog( "Error", err );
+};
+
+// 登录功能的对象
+function LoginController() {
+Controller.call( this ); 
+}
+// 把子类关联到父类
+LoginController.prototype = Object.create( Controller.prototype );
+
+LoginController.prototype.getUser = function() {
+    return document.getElementById( "login_username" ).value;
+};
+
+LoginController.prototype.getPassword = function() {
+    return document.getElementById( "login_password" ).value; 
+};
+
+LoginController.prototype.validateEntry = function(user,pw) { 
+user = user || this.getUser();
+pw = pw || this.getPassword();
+if (!(user && pw)) { 
+    return this.failure(
+           "Please enter a username & password!"
+        );
+}else if (user.length < 5) {
+return this.failure(
+"Password must be 5+ characters!"
+); }
+// 如果执行到这里说明通过验证
+return true; };
+
+// 重写基础的failure(),模仿继承的重写.
+LoginController.prototype.failure = function(err) {
+//“super”调用 
+Controller.prototype.failure.call(this,"Login invalid: " + err);
+};
+
+// 另一个子类
+function AuthController(login) {
+Controller.call( this ); // 合成
+this.login = login;
+}
+
+// 把子类关联到父类 
+AuthController.prototype = Object.create( Controller.prototype ); 
+// 添加相同的行为
+AuthController.prototype.server = function(url,data) {
+return $.ajax( { url: url,
+        data: data
+    } );
+};
+// 添加相同的行为
+AuthController.prototype.checkAuth = function() {
+var user = this.login.getUser(); 
+var pw = this.login.getPassword();
+if (this.login.validateEntry( user, pw )) {
+    this.server( "/check-auth",{ user: user,pw: pw })
+.then( this.success.bind( this ) )
+.fail( this.failure.bind( this ) ); 
+}
+};
+
+// 重写基础的 success() 
+AuthController.prototype.success = function() {
+//“super”调用
+Controller.prototype.success.call( this, "Authenticated!" ); 
+};
+// 重写基础的 failure() 
+AuthController.prototype.failure = function(err) {
+//“super”调用 
+Controller.prototype.failure.call(this,"Auth Failed: " + err);
+};
+var auth = new AuthController(	
+	new LoginController()
+);
+auth.checkAuth();
+```
+> 所有控制器共享的基础行为是success(..)、failure(..) 和 showDialog(..)。 子 类 LoginController 和 AuthController 通过重写 failure(..) 和 success(..) 来扩展默认基础类行为。此外，注意 AuthController 需要一个 LoginController 的实例来和登录表单进行 交互，因此这个实例变成了一个数据属性。
+
+* 接下来上面的代码我们用对象的关联来简化这段代码
+* 首先我们可以分析按照面向类的观点这样的一个代码是非常需要抽象出来一个controller从而有不同的实现的,但是在对象关联的设计模式当中并不是这样的.
+* 简单的来说 上述面向类的思想就是A继承C,L也继承C.A在使用的时候又需要L中的行为来决定L和A公有C的行为(就是A中的checkAuth方法成功就是执行C的成功失败就是执行C的失败).总结一下就是A的之所以要继承C就是因为L的行为导致的所以你会发现我们完全可以把中间的A继承C和L继承C改为A关联L就行了
+* 如果你想要说为什么A不能直接的继承L呢?如果A继承L在这种逻辑当中A需要覆写L的基础行为.但是A还需要根据L的行为来让L显示信息(也就是A需要通过checkAuth得到L的结果决定L当中是不是应该执行成功还是失败).所以这样的继承也就没有什么用处.
+```js
+var LoginController = { 
+errors: [],
+getUser: function() {
+return document.getElementById("login_username").value;
+},
+getPassword: function() {
+return document.getElementById( "login_password").value; 
+},
+validateEntry: function(user,pw) { 
+    user = user || this.getUser(); pw = pw || this.getPassword();
+if (!(user && pw)) { 
+    return this.failure("Please enter a username & password!");
+}
+else if (user.length < 5) {
+return this.failure("Password must be 5+ characters!"); 
+}
+// 如果执行到这里说明通过验证
+return true; 
+},
+showDialog: function(title,msg) { // 给用户显示标题和消息
+},
+failure: function(err) {
+this.errors.push( err );
+this.showDialog( "Error", "Login invalid: " + err ); }
+};
+// 让 AuthController 委托 LoginController
+var AuthController = Object.create( LoginController );
+AuthController.errors = []; AuthController.checkAuth = function() {
+var user = this.getUser(); var pw = this.getPassword();
+if (this.validateEntry( user, pw )) { 
+    this.server( "/check-auth",{user: user,pw: pw })
+.then( this.accepted.bind( this ) )
+.fail( this.rejected.bind( this ) ); }
+};
+ AuthController.server = function(url,data) {
+return $.ajax( { url: url,
+              data: data
+          } );
+};
+AuthController.accepted = function() {
+this.showDialog( "Success", "Authenticated!" ) 
+};
+AuthController.rejected = function(err) { 
+    this.failure( "Auth Failed: " + err );
+};
+```
+* 所以按对象关联的设计模式来看,这样的代码更加简便AuthController需要使用LoginController的方法也就是将,既然A想要根据L的结果来做你的事情,那我们就让A把这件事情委托给B就好了!!!!! A和L就像兄弟一样,你让我干啥我就干啥
+* 这里真的是看了好久了
+
+### 更好的语法  
+* 在上面的AuthController中你会发现这样写非常的反人类不像LoginController一样所以es6提供的一种方式就是
+```js
+// 使用更好的对象字面形式语法和简洁方法 
+var AuthController = {
+errors: [],
+checkAuth() { },
+server(url,data) { }
+};
+// 现在把 AuthController 关联到 LoginController 
+Object.setPrototypeOf( AuthController, LoginController );
+```
+#### 反词法
+* es6的语法糖实现了这样的一个功能
+```js
+var Foo = {
+//es6
+bar() { /*..*/ },
+// 去除语法糖
+bar: function() { /*..*/ },
+};
+```
+* 简单来说就是bar(){}会被默认成一个匿名函数赋值给bar()(作者为什么用bar,难道是我邪恶了)但是这会有在当中无法自我引用的缺点当需要回调的时候就会显得比较乏力
+
+### 自省
+* 简单的来说就是检查实例的类型,就如之前所说的 a instaceof func;
+* 正如之前说的instaceof只能用于一个对象和一个函数的关系,如果是两个函数需要怎么办呢.
+#### 鸭子模型
+* 如果他走起来像鸭子,那他就是鸭子.
+```js
+if (a1.walkLikeDuck) { 
+    a1.walkLikeDuck();
+}
+```
+* 就像上面只要a1能够调用walkLikeDuck这个方法,我们就认为他是这个类的实例,但是这是脆弱的.比如我们用promise的then来判断方法.但是这个then并不是一定会出现的.所义就会又问题了.
+
+
 
 
