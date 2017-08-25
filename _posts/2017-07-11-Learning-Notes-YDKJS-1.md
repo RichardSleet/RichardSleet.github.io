@@ -214,9 +214,11 @@ function foo() {
 foo(); // 1
 foo = function() { console.log( 2 );
 };
-```
-## 第五章: 闭包
+```  
+
+# 第五章: 闭包
 ### 什么是闭包
+* 其实我把闭包想象为一个闭包的被保存的作用域,而实现方式通常使用function(){}创建这样一个词法作用域
 * js当中最大的重头戏来了
 ```js
 function foo() { 
@@ -257,18 +259,17 @@ function bar() {
 foo();
 bar(); // 2
 ```
-* 作者也告诉我们不仅仅如此,闭包之所用重要是因为
-* 在定时器、事件监听器、 Ajax请求、跨窗口通信、Web Workers或者任何其他的异步(或者同步)任务中，只要使用了回调函数，本质都是在使用闭包!
-
+* 作者也告诉我们不仅仅如此,闭包之所用重要是因为 在定时器、事件监听器、 Ajax请求、跨窗口通信、Web Workers或者任何其他的异步(或者同步)任务中，只要使用了回调函数，本质都是在使用闭包!
 ```js
 function wait() {
     let a = 1;
     function test(){
         console.log(this.a)
+        console.log(a)
     }
     return test;
 }
-let a = 2;
+var a = 2;
 wait()();
 // 定时器
 function wait(message) {
@@ -289,11 +290,35 @@ console.log( "Activating: " + name ); });
      setupBot( "Closure Bot 2", "#bot_2" );
 //触发的activator函数也可以看做是一个闭包
 ```
-### 2.循环和闭包 p49
-* 这一部分作者真的是讲的很详细,不得不说我看懂了,如何维持var 的一个内部作用域是很重要的
-### 3.模块
-* 模块机制的实现其实就是闭包  
 
+### 循环和闭包
+* 先看看代码
+```js
+for (var i=1; i<=5; i++) { 
+setTimeout( function timer() {
+    console.log( i );
+}, i*1000 );
+}
+```
+* 其实以上的输出结果并不会是1,2,3,4,5.反而回是6,6,6,6,6.这是因为setTimeout闭包并不是立即执行的,而是延迟执行的.所以第一步会先把for循环走完,当延迟执行的函数重新回到这个作用域的时候,这里的变量已经面目全非了,所以为了能够维护闭包调用的作用域我们会才去一些措施
+```js
+//这样是不行的,虽然我们确实创建了一个供闭包将来回头查看的作用域,但是这个作用域里面什么都没有
+for (var i=1; i<=5; i++) { 
+(function() { setTimeout( function timer() { console.log( i );
+             }, i*1000 );})();
+}
+//所以像下面这样的才能够运行,因为这里面维护的作用域就不再是空了,当然也是因为这里面是一个值变量
+for (var i=1; i<=5; i++) { 
+(function() {
+    var j = i;
+    setTimeout( function timer() {
+                 console.log( j );
+             }, j*1000 );
+})(); }
+```
+### 模块
+* 在前端方面最早的模块机制的实现其实就是闭包  
+* 开头我说通常使用function(){}来维持一个特定的作用域,而下面的返回object的对象将各个维持特定作用域的function(){}组合起来,也能够实现闭包.
 ```js
 function CoolModule() { 
 var something = "cool";
@@ -302,63 +327,62 @@ function doSomething() {
     console.log( something );
 }
 function doAnother() {
-console.log( 
-    another.join( " ! " ) 
-    );
-    }
+console.log( another.join( " ! " ) );
+}
 return {    
 doSomething: doSomething, 
 doAnother: doAnother
-}; 
-}
+};}
 var foo = CoolModule(); 
 foo.doSomething(); // cool
 foo.doAnother(); // 1 ! 2 ! 3
 ```
 > 首先，CoolModule() 只是一个函数，必须要通过调用它来创建一个模块实例。如果不执行 外部函数，内部作用域和闭包都无法被创建。  
-其次，CoolModule()返回一个用对象字面量语法{ key: value, ... }来表示的对象。这 个返回的对象中含有对内部函数而不是内部数据变量的引用。我们保持内部数据变量是隐 藏且私有的状态。可以将这个对象类型的返回值看作本质上是模块的公共 API。  
-从模块中返回一个实际的对象并不是必须的，也可以直接返回一个内部函 数。jQuery 就是一个很好的例子。jQuery 和 $ 标识符就是 jQuery 模块的公 共 API，但它们本身都是函数(由于函数也是对象，它们本身也可以拥有属 性)。
-* 这样就实现了访问API中的方法但是却又不会使变量污染
-* 这里我会写一些有趣的代码探讨一下(返回函数的性质)  
-
-
-### 4.现代和未来的模块机制
+其次，CoolModule()返回一个用对象字面量语法{ key: value, ... }来表示的对象。这个返回的对象中含有对内部函数而不是内部数据变量的引用。我们保持内部数据变量是隐 藏且私有的状态。可以将这个对象类型的返回值看作本质上是模块的公共 API。  
+从模块中返回一个实际的对象并不是必须的，也可以直接返回一个内部函数。jQuery 就是一个很好的例子。jQuery 和 $ 标识符就是 juery 模块的公共 API但它们本身都是函数(由于函数也是对象，它们本身也可以拥有属 性)。
+* 这样就实现了访问API中的方法但是却又不会使变量污染,因为你必须使用它然后自己赋值一个变量
+* 闭包的形成必须有两个条件:1.必须有像上面一CoolModule()一样的封闭函数,也就是闭包所能保留的作用域范围.2.封闭函数至少要返回一个函数去作为探测这个作用域的闭包
+### 现代和未来的模块机制
+* 看看下面代码
 ```js
+//这里的模块定义就像上面的那样返回的是由闭包函数组成的对象
 var MyModules = (function Manager() {
 var modules = {};
+//这个函数是将创建定义,模块的名字,和制定自己所依赖的模块当你需要依赖其他模块的时候就会在这里进行加载,传入实现函数进行加载,最后是这个模块的实现
 function define(name, deps, impl) { 
     for (var i=0; i<deps.length; i++) {
-                 deps[i] = modules[deps[i]];
-             }
-             modules[name] = impl.apply( impl, deps );
-         }
-function get(name) { return modules[name];
+        deps[i] = modules[deps[i]];
+    }
+    modules[name] = impl.apply( impl, deps );
 }
+function get(name) { return modules[name];}
 return {
-define: define,
-get: get };
+    define: define,
+    get: get 
 }
-)();
-
-//使用和定义
-MyModules.define( "bar", [], function() { function hello(who) {
-return "Let me introduce: " + who; }
-return {
-hello: hello
-}; });
-                  MyModules.define( "foo", ["bar"], function(bar) {
-                      var hungry = "hippo";
-   }
-return {
-awesome: awesome
-}; });
-                  var bar = MyModules.get( "bar" );
-                  var foo = MyModules.get( "foo" );
-                  console.log(
-                      bar.hello( "hippo" )
-); // Let me introduce: hippo foo.awesome(); // LET ME INTRODUCE: HIPPO
+})();
+//首先定义一个自己的模块bar,用来分装一个说你好的方式
+MyModules.define( "bar", [], function() { 
+    function hello(who) {return "Let me introduce: " + who; }
+    return {
+    hello: hello
+};});
+//foo依赖于
+MyModules.define( "foo", ["bar"], function(bar) {
+    var hungry = "hippo";
+    function awesome(){
+        console.log(bar.hello(hungry).toUpperCase())
+    }
+    return {
+        awesome: awesome
+    }; 
+});
+var bar = MyModules.get( "bar" );
+var foo = MyModules.get( "foo" );
+console.log(bar.hello( "hippo" )); // Let me introduce: hippo 
+foo.awesome(); // LET ME INTRODUCE: HIPPO
 ```
-* 这段代码的意思是通过返回闭包来封装一个模块,并将闭包的名字加入到列表当中,上文中的代码还加入了一个功能就是当这个闭包依赖于其他闭包的时候,需要加载其他闭包
+* 实际上在foo中得到的闭包bar闭包和 var bar = MyModules.get( "bar" );得到的闭包是一样的
 
 ### 未来的模块机制
 * 在es6中会把一个文件当做一个模块,我个人理解就是用一个(function 文件名(导入的其他文件){})将整个文件代码括起来
@@ -367,5 +391,33 @@ awesome: awesome
 * 还有一点好处是如果b块里面用了c,当b导入到a中c也就会自己导入
 * module和import的区别
 > import 可以将一个模块中的一个或多个 API 导入到当前作用域中，并分别绑定在一个变量 上(在我们的例子里是 hello)。module 会将整个模块的 API 导入并绑定到一个变量上(在 我们的例子里是 foo 和 bar)。export 会将当前模块的一个标识符(变量、函数)导出为公 共 API。这些操作可以在模块定义中根据需要使用任意多次。
-* 这里我会写一些有趣的代码探讨一下
 
+## 附录的内容
+### 动态作用域
+* 通过前面的学习我们知道静态作用域也就是词法作用域,也就是词法作用域是由编译器提前执行代码的时候构造出来的一个作用域,我觉得他一定是采用树进行存储的.而动态的作用域实际上更多的是指的this指针,也就是说在引擎执行代码的过程中进行变化的.大部分的作用域应该是词法作用域,但是难免的要使用一些在执行过程中变化的作用域
+```js
+function foo(){
+    console.log(a)//2
+}
+function bar(){
+    var a = 3;
+    foo(); 
+}
+var a = 2;
+bar();
+```
+* 上面的代码当中foo()作用域中没有a变脸,也就是说要执行RHS引用(当然也没有console变量他会执行LHS引用)所以会找到2
+* 但是之前了解this的我就迷糊了,难道不应该用动态作用域来查看变量么.其实并不然动态作用域通过暴露的this这样一个指针去执行调用栈的上一级.反而和静态作用域是作用在两个不同地方的东西.他不会在意访问的代码.如果按照动态作用域的解释他就会输出3.
+
+### 块作用域
+* 之前说过js中是没有块级作用域的但是这其实并不是一个正常的编程语言的行为,所以模拟块级作用域是非常重要的.所以其实在一些语法中就已经有了块级作用域
+* 比如with 和catch 其实函数作用域也是块级作用域
+```js
+try{throw 2;}catch(a){ 
+    console.log( a ); // 2
+}
+console.log( a ); // ReferenceError
+```
+
+### 隐式作用域
+* `1不得不说这个写法实在是比上面的代码更奇葩等我闲下来看看
