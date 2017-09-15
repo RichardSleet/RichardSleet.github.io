@@ -8,22 +8,22 @@ category: LearingNote-YDKJS
 ## 第一章 关于this
 
 ### 1. this是什么
-* 下面这种方式就是显示的传递上下文,但是并不常用
+* 词法作用域也就是静态作用域但是也就是在编译的时候就已经由编译器编译给作用域以供引擎使用的(虽然用with和eval可以欺骗词法作用域),但是呢有时候静态作用域是远远不够的,所以就产生了动态作用域,动态作用域就是引擎执行代码时确定的,而且还可以动态的进行更改.this就是动态作用域给出的接口,函数的任何地方.
+* 下面这种方式就是显示的传递上下文,但是并不应该经常使用
 ```js
 function identify(context) {
-return context.name.toUpperCase();
+    return context.name.toUpperCase();
 }
 function speak(context) {
-var greeting = "Hello, I'm " + identify( context ); 
-console.log( greeting );
+    var greeting = "Hello, I'm " + identify( context ); 
+    console.log( greeting );
 }
 identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
 ```
 
 ### 2. 对this的误解  
-
-* 十分需要注意的是是this永远都不会指向他所在的函数自己也就是说你在函数当中创建的变量,你是无法通过this的方式去访问的,所以下面的代码就是很好的例子
+* 十分需要注意的是this永远都不会指向他所在的函数自己也就是说你在函数当中创建的变量,你是无法通过this的方式去访问的,所以下面的代码就是很好的例子.换句话说就是词法作用域和this作用域是区分开来的
 ```js
 function foo(num) {
 console.log( "foo: " + num );
@@ -44,11 +44,17 @@ if(i>5){
 // foo 被调用了多少次?
 console.log( foo.count ); // 0 -- WTF?
 ```
-* 需要注意的原则就是 ***那个object调用了函数,this指就向谁*** 即使object的函数还是会调用函数但是她们只会指向object调用的函数,因为调用堆栈当中永远不会是别他的词法作用域(也就是前面提到的静态作用域,这是完全分割的),调用堆栈当中存储的一定是一个正儿八经的对象,而不是function.就和下面说的一样
+* 需要注意的原则就是 ***那个object调用了函数,this指就向谁*** 即使object的函数还是会调用函数但是他们只会指向object调用的函数,因为调用堆栈当中永远不会是词法作用域(也就是前面提到的静态作用域,这是完全分割的),调用堆栈当中存储的一定是一个正儿八经的对象,而不是function.
 
 ### 3. 对this的作用域得误解
-* 下面就是一个最典型的例子foo当中调用了bar输出了this.a和this.b很明显结果的输出并不是123而是最外层this指向的window对象这是因为this查找的调用堆栈当中根本不存在函数的词法作用域.
+* 下面就是一个最典型的例子foo当中调用了bar输出了this.a和this.b很明显结果的输出并不是123而是最外层this指向的window对象这是因为this查找的调用堆栈当中根本不存在函数的this的作用域.
 ```js
+//惊奇发现的是如果使用的var变量就会输出对应的值
+var a = 0;
+var b = 1;
+//如果使用的是let变量则就输出undefine
+let a = 0;
+let b = 1;
 function foo(){
     foo.a = 123;
     let b = 123;
@@ -59,12 +65,6 @@ function foo(){
     bar();
 }
 foo();
-//惊奇发现的是如果使用的var变量就会输出对应的值
-var a = 0;
-var b = 1;
-//如果使用的是let变量则就输出undefine
-let a = 0;
-let b = 1;
 ~~~~我是分割线~~~~~
 function foo() {    
     var a = 2;
@@ -75,45 +75,46 @@ function bar() {
 }
 foo(); // ReferenceError: a is not defined
 ```  
-* 我可以理解成为如果var在this指向嘴顶层的作用域也就是window或者global时就会自动创建window对象. 
+* 我记得曾经在阮大大的博客上面看到的var的声明会自动编程window的属性,这是因为js的创造者在创建这个语言的时候为了考虑浏览器的内存所以他会自动的把var声明的变量放在window当中,于是就和typeof一样成为历史遗留的问题了.所以我经常在function当中使用var但是却没有在静态常量中找到声明的值,也就不奇怪了
 
 ## 第二章 this全面解析  
 
 ### 1.调用位置
-* 确定this的绑定首先要搞懂谁在调用,当我们调试程序的时候很容易接触到这个调用栈的概念,就是为了帮助我们查看是谁调用了这个函数
-* 下面的代码文章中已经很详细了  
+* 确定this的绑定首先要搞懂谁在调用,当我们调试程序的时候很容易接触到这个调用栈的概念,就是为了帮助我们查看是谁调用了这个函数  
 ```js
 function baz() {
-// 当前调用栈是:baz
-// 因此，当前调用位置是全局作用域:baz的上一级
-console.log( "baz" );
-bar(); // <-- bar 的调用位置 
+    // 当前调用栈是:baz
+    // 因此，当前调用位置是全局作用域:baz的上一级
+    console.log( "baz" );
+    bar(); // <-- bar 的调用位置 
 }
 function bar() {
-// 当前调用栈是 baz -> bar
-// 因此，当前调用位置在 baz 中
-         console.log( "bar" );
-foo(); // <-- foo 的调用位置 
+    // 当前调用栈是 baz -> bar
+    // 因此，当前调用位置在 baz 中
+    console.log( "bar" );
+    foo(); // <-- foo 的调用位置 
 }
 function foo() {
-// 当前调用栈是 baz -> bar -> foo // 因此，当前调用位置在 bar 中
-         console.log( "foo" );
+    // 当前调用栈是 baz -> bar -> foo // 因此，当前调用位置在 bar 中
+    console.log( "foo" );
 }
 baz(); // <-- baz 的调用位置
 ```  
 
-### this的四种绑定方式  
+### 2.this的四种绑定方式  
 
-#### 1.默认绑定:
-* 下面的方式就是默认的绑定方式其中this执行的是全局对象,不要简简单单的认为默认绑定就是隐式绑定自动默认的值而已,使用默认绑定我感觉就像对于执行了function的.
-* 说白了默认绑定就是null.foo()没有绑定任何一个对象那就绑定全局对象
+#### 默认绑定:
+* 下面的方式就是默认的绑定方式其中this指的是全局对象,不要简简单单的认为默认绑定就是隐式绑定自动默认的值而已,使用默认绑定我感觉就像对于执行了function的.
+* 说白了默认绑定就是null.foo()没有绑定任何一个对象那就全局对象进行绑定(很重要)
 ```js
 function foo() { 
     console.log( this.a );
 }
 var  = 2; 
 foo(); // 2
+
 ~~~~分割线~~~~~~
+
 var obj = {
     a : 2,
     foo:function(){
@@ -127,8 +128,7 @@ var obj = {
 }
 var a = 3;
 ```  
-
-* 像上面一样的通过foo()绑定的方式为默认绑定,简单来说就是用当前的作用域的this来调用foo()在严格模式下是不会绑定全局变量的.ß
+* 像上面一样的通过foo()绑定的方式为默认绑定,简单来说就是用当前的作用域的this来调用foo()在严格模式下是不会绑定全局变量的
 ```js  
 function foo() { 
 "use strict";
@@ -137,8 +137,9 @@ console.log( this.a );
 var a = 2;
 foo(); // TypeError: this is undefined
 ```  
-#### 2.隐式绑定:
-* 下面的代码就是隐式绑定,他会获取调用者的上下文,切记不要简简单单的认为默认绑定就是隐式绑定的一种
+
+#### 隐式绑定:
+* 隐式绑定
 ```js
 function foo() { 
     console.log( this.a );
@@ -164,8 +165,7 @@ obj1.obj2.foo(); // 42
 ```  
 
 * 静态绑定的this只能进行一次绑定,并不能传递.
-* 在这样得引用链当中,上下文是不会被传递的所以只会成为调用他的人的上下文
-* 隐式丢失:很明想就是不小心绑定到了全局对象或者是一个undefinded对象上  
+* 隐式丢失:很明想就是不小心绑定到了全局对象或者是一个undefinded对象上
 ```js
 function foo() 
 { 
@@ -180,25 +180,25 @@ var bar = obj.foo; // 函数别名!
 var a = "oops, global"; // a 是全局对象的属性 
 bar(); // "oops, global"
 ```
-* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个浅拷贝.所以这时bar启用的实际上是一个默认绑定
+* 上面这段代码需要好好揣摩一下,首先说说bar,虽然函数中写了var bar = obj.foo,但是值得注意的是bar应该和obj.foo指向的是同一个地方,这个 = 是一个浅拷贝.使用obj调用的话会进行this的静态绑定.但是这个进行浅拷贝以后bar就是一个指向foo函数的指针,调用的时候也没有进行静态绑定所以就为默认绑定
 ```js
 function foo() { 
     console.log( this.a );
 }
 function doFoo(fn) {
-// fn 其实引用的是 foo 
+    // fn 其实引用的是 foo 
     fn(); // <-- 调用位置!
 }
 var obj={ 
-a: 2,
-foo: foo 
+    a: 2,
+    foo: foo 
 };
 var a = "oops, global"; // a 是全局对象的属性 
 doFoo( obj.foo ); // "oops,global"
 ```
-* 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作(因为这里会进行参数的赋值)找到他应该赋值给谁赋值給fn,这同样是一个浅拷贝.所以其实传入的是一个指向foo()函数的指针.当执行最后一行代码的时候.首先会去找doFoo的然后这个作用域没有就会再次查找顶层作用域得到a输出.也就是说看是什么绑定一定要看最后的()调用是什么绑定
+* 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作(因为这里会进行参数的赋值)找到他应该赋值给谁赋值給fn,这同样是一个浅拷贝.所以其实传入的是一个指向foo()函数的指针.和之前的例子一样,因为fn()使用的是默认绑定所以依然绑定在全局上
 
-#### 3.显示绑定
+#### 显示绑定
 * 简单点来说就是通过特有函数改变this的指向(eg.call,apply) 他们的第一个参数通常都是this需要绑定上的对象  
 ```js
 function(){
@@ -209,8 +209,8 @@ var obg = {
 }
 foo.call(obg);
 ```
-* 笔者在这里并没有说call,apply的区别,简单说明一下就是call(this,arg1,arg2),apply(this,qrguments)
-* 硬绑定,像下面这种方式无论怎么调用bar()foo的this始终的绑定在obj上无法改变这就是硬绑定,下面这种bar就相当于包裹函数
+* 简单说明一下就是call(this,arg1,arg2),apply(this,arguments)就是一个接受一堆参数,一个接收一个类数组的对象参数
+* 硬绑定,像下面这种方式无论怎么调用bar(),foo的this始终的绑定在obj上无法改变这就是硬绑定,bar其实相当于包裹函数
 ```js
 fucntion foo(){
     console.log(this.a)
@@ -225,6 +225,7 @@ bar() //2
 setTimeout(bar,100);//2
 bar.call(window)///2
 ```  
+
 * 还有一种方法就是创建一个可以循环重复使用的函数像笔者下面给的代码  
 ```js
 function foo(something){
@@ -259,20 +260,18 @@ var b = bar(3);
 console.log(b)
 ```  
 
-#### 4.new绑定
-* 首先说一说js中的new,当然这个和java,c,c++的new都是不一样的.因为js实际上没有类的概念虽说函数的原型比较像但是毕竟还是有很大的不同的.下面是笔者对js中的构造函数的解释
-> 首先我们重新定义一下 JavaScript 中的“构造函数”。在 JavaScript 中，构造函数只是一些 使用 new 操作符时被调用的函数。它们并不会属于某个类，也不会实例化一个类。实际上， 它们甚至都不能说是一种特殊的函数类型，它们只是被 new 操作符调用的普通函数而已。  
+#### new绑定
+* 首先说一说js中的new,这个和java,c,c++的new是不太一样的.因为js实际上没有类的概念,所以其实并不是new的一个class而是new的一个function也就是构造函数.下面是笔者对js中的构造函数的解释
+> 首先我们重新定义一下 JavaScript 中的“构造函数”。在 JavaScript 中，构造函数只是一些 使用 new 操作符时被调用的函数。它们并不会属于某个类，也不会实例化一个类。实际上，它们甚至都不能说是一种特殊的函数类型它们只是被 new 操作符调用的普通函数而已。  
 举例来说，思考一下 Number(..) 作为构造函数时的行为，ES5.1 中这样描述它:
 15.7.2 Number 构造函数
-当 Number 在 new 表达式中被调用时，它是一个构造函数:它会初始化新创建的 对象。
-所以，包括内置对象函数(比如 Number(..)，详情请查看第 3 章)在内的所有函数都可 以用 new 来调用，这种函数调用被称为构造函数调用。这里有一个重要但是非常细微的区 别:实际上并不存在所谓的“构造函数”，只有对于函数的“构造调用”。 
-* 使用 new 来调用函数，或者说发生构造函数调用时，会自动执行下面的操作。(第三部很重要)
-1. 创建(或者说构造)一个全新的对象。
-2. 这个新对象会被执行[[原型]]连接。
-3. 这个新对象会绑定到函数调用的this。
+当 Number 在 new 表达式中被调用时，它是一个构造函数:它会初始化新创建的对象。所以，包括内置对象函数(比如 Number(..),Array(..等)，详情请查看第 3 章)在内的所有函数都可以用 new 来调用，这种函数调用被称为构造函数调用。这里有一个重要但是非常细微的区别:实际上并不存在所谓的“构造函数”，只有对于函数的“构造调用”。 
+* 使用 new 来调用函数，或者说发生构造函数调用时，会自动执行下面的操作。(第三部步很重要)
+1. 创建(或者说构造)一个全新的对象.如果return后面有返回值那么就会返回这个对象,那么后面的步骤就不会执行
+2. 这个新对象会被执行[[原型]]连接。(没有return的情况下)
+3. 这个新对象会绑定到函数调用的this。(没有return的情况下)
 4. 如果函数没有返回其他对象，那么new表达式中的函数调用会自动返回这个新对象。
-* 没错构造函数就是普通的函数!
-* 笔者给出了例子代码  
+* 简单的例子代码  
 ```js
 function foo(a) { 
     this.a = a;
@@ -287,20 +286,57 @@ console.log( bar.a ); // 2
 }
 2.对象的this会绑定在bar上所以bar.a = this
 
-### 优先级
-* 简单的来说找到this的作用域就是找到调用位置,判断规则.因为规则太多的冲突就会引发冲突,自然就会有优先级这么一说了
-> 默认绑定<隐式绑定<显示绑定<new绑定  
-* 接下来笔者给的es5中bind的实现,简单来说es5中的bind会判断是不是new的调用,如果是bind的this将会全部改变.需要做这样判断的原因就是new绑定和硬绑定实际上是经常使用的绑定ß
+### 3.优先级
+* 简单的来说找到this的作用域就是找到调用位置,判断规则.可有时候会因为绑定发生冲突遵循什么样的绑定就由优先级来决定,在大多数情况下会遵守下面的绑定
+> 默认绑定<隐式绑定< (显示绑定,new绑定)根据具体情况而定(因为call和aply并不能和new绑定冲突所以也就不用考虑这些)
+* 下面的代码当中bar被硬绑定到 obj1 但是new bar(3)却并没有修改obj1的值。相反new修改了硬绑定(到obj1的)调用bar(..)中的this因为使用了new绑定，我们得到了一个名字为baz的新对象并且 baz.a 的值是 3。
 ```js
-//一个即将被构造函数调用的函数
-function foo(p1,p2){
-    this.val = p1 * p2;
+function foo(something) { 
+    this.a = something;
 }
-//null就是任意绑定,写了没有用的,总会被new干掉的
-var bar = foo.bind(null,'p1');
-var baz = new bar('p2');
-bac.val //p1p2
+var obj1 = {
+};
+var bar = foo.bind( obj1 ); 
+bar( 2 );
+console.log( obj1.a ); // 2
+var baz = new bar(3); 
+console.log( obj1.a ); // 2 
+console.log( baz.a ); // 3
 ```  
+* 其实我一直以为bind绑定就是下面的这个节奏,按照这个节奏.每次调用的时候一定会发生硬绑定,但是上面的new却进行了this的更改
+```js
+function bind(fn, obj) { 
+    return function() {
+        fn.apply( obj, arguments );
+    };
+}
+```
+* 官方的解释是bind也就是硬绑定的函数会判断当前的函数是不是被new绑定了,如果被new绑定了就不再进行硬绑定.
+* 硬绑定和new绑定结合的主要原因就是会需要返回一个对象,但又想这个对象当中提前设置好的一些函数参数比如说下面的例子
+```js
+//需要返回的对象
+function foo(nameStr,name){
+    this.val = nameStr+name;
+}
+//这里null,其实会绑定到全局对象也就是默认绑定
+var bar = foo.bind( null, "name:" );
+var baz = new bar( "sleet" ); 
+baz.val; // name:sleet
+```
+* 上面这种方式其实算是函数的柯理化的一种(curry),柯理化简单的来说就是只传递给函数一部分参数来调用它，让它返回一个函数去处理剩下的参数。就像下面的这种方式,具体的细节可以看[这里](https://llh911001.gitbooks.io/mostly-adequate-guide-chinese/content/ch4.html#不仅仅是双关语咖喱)
+```js
+var add = function(x) {
+  return function(y) {
+    return x + y;
+  };
+};
+var increment = add(1);
+var addTen = add(10);
+increment(2);
+// 3
+addTen(2);
+// 12
+```
 
 * 下面是笔者总结的规则
 > 1. 函数是否在new中调用(new绑定)?如果是的话this绑定的是新创建的对象。
@@ -313,8 +349,8 @@ bac.val //p1p2
      var bar = foo()
 
 
-### 会被忽略的情况  
-* 当显示绑定传入的是this为null或者为undefined的时候 等价于默认绑定  
+#### 会被忽略的情况  
+* 当显示绑定传入的是this为null或者为undefined的时候等价于默认绑定,就像上面的那样  
 ```js
 function foo() { 
     console.log( this.a );
@@ -325,12 +361,13 @@ foo.call( null ); // 2 = foo()
 * 这就不必多说了,但是为什么会出现这样的情况呢,这样的话可以用来展开数组传入函数的参数当中eg:
 ```js
 function foo(a,b) {
-console.log( "a:" + a + ", b:" + b );
+    console.log( "a:" + a + ", b:" + b );
 }
 // 把数组“展开”成参数
 foo.apply( null, [2, 3] ); // a:2, b:3
-// 使用 bind(..) 进行柯里化 var bar = foo.bind( null, 2 ); bar( 3 ); // a:2, b:3
-//当然在es6 当中加入了 ...的语法可以替代这样的一个功能,然而翻译大大说这样并不能实现柯里化的相关语法
+// 使用 bind(..) 进行柯里化 
+var bar = foo.bind( null, 2 ); bar( 3 ); // a:2, b:3
+//当然在es6当中加入了...的语法可以替代这样的一个功能,然而翻译大大说这样并不能实现柯里化的相关语法
 ```  
 * 间接引用:如果你总是拿着函数的指针进行赋值,那么就会有一些像下面的状况(p.foo = o.foo)();想这种奇葩的调用其实并不是调用了p.foo(),因为执行p.foo = o.foo 会返回一个结果值,而这个结果值恰恰就是就是函数的引用,调用这个引用并没有并没有进行任何绑定所以还是使用默认绑定  
 ```js
@@ -349,12 +386,10 @@ o.foo(); // 3
 (p.foo = o.foo)(); // 2
 p.foo()//4
 ```
-* `1
 
-### 软绑定
+### 4.软绑定
 * 因为经过硬绑定的函数是没法通过隐式和显式绑定绑定对象的所以说就出现了软绑定的一些概念. 他可以在this被绑定以后还能够更改this的指向,下面代码就是
-* 下面就是硬绑定和软绑定的一些实现,在进行硬绑定和软绑定的时候会先
-* `1下面的代码还是云里雾里的
+* 下面就是硬绑定和软绑定的一些实现调用softbind的时候并不是立即执行而是真正的执行函数的时候会检查this是不是空,如果是空或者全局如果是的话就会使用绑定的函数,如果不是则会使用新的this对象
 ```js
 //如果软绑定不存在
 if(!Function.prototype.softBind){
@@ -363,10 +398,8 @@ if(!Function.prototype.softBind){
         //就是把
         var curried = [].slice.call(arguments,1)
         var bound = function(){
-            return fn.apply(
-                (!this || this === (window || global)) ?
-                obj : this
-                curried.concat.apply( curried, arguments )
+            return fn.apply((!this || this === (window || global)) ?
+                obj : this,curried.concat.apply( curried, arguments )
             );
         };
         bound.prototype = Object.create(fn.prototype)
@@ -374,7 +407,8 @@ if(!Function.prototype.softBind){
     }
 }
 ```  
-### 特殊的箭头函数
+
+### 5.特殊的箭头函数
 * 箭头函数最大的特例就是不属于 this的四种绑定的任何一种,而是根据所在位置的外层作用域所决定的.所以下面的代码  
 ```js
 function foo(){
@@ -392,7 +426,6 @@ var obj2 ={
 var bar = foo.call(obj1)
 bar.call(obj2);//2
 ```  
-
 * 也就是说返回的this都会指向所在的函数的this
 * 简单来说箭头函数()=>{}在foo()内部,所有他的this始终是和foo()的this是一样的
 ,因为经过硬绑定绑定道了obj1,所以只能执行obj1
@@ -1236,7 +1269,6 @@ class ABC inherits Task { // ...
 * 但是js当中的理论并不是这个样子的.js采用的委托理论.是因为js当中只有对象没有类.js当中创建对象不需要依靠class就像之前所说的那样子直接用{}创建对象字面量.但是js可以依靠对象之间的委托来实现这样的一个继承多态的功能.
 * 同理我们可以同样的把一个共同的部分作为一个对象,而其他和他平等的对象实际上是于这个抽出共同行为的对象相互关联.每个对象不同的部分由对象本身来实现.而如果需要执行相同的地方可以在这个对象中调用关联的抽出共同行为的对象的方法.
 * 这么说可能会比较绕口,来看一个代码体验一下.
-
 ```js
 //正如同我们刚才所讲的创建一个对象,抽出共同的行为
 Task={
@@ -1264,40 +1296,35 @@ XYZ.outputTaskDetails = function() {
 ### 更简洁的设计.
 * 这里展现一下笔者是如何通过对象的关联来简洁代码的.
 * 如果有一个功能需要登录后提交表单进行验证.则在MVC中的C中需要控制两个逻辑流程1,操作form表单得到信息.2.网络请求的控制.按照面向类的理论  
-
 ```js
 // 从这里面抽取的共同的行为作为一个类
 function Controller() {
-this.errors = []; 
+    this.errors = []; 
 }
 // 在这个共同的类当中加入共同的行为
 Controller.prototype.showDialog(title,msg) 
-{ // 给用户显示标题和消息
-
+{ 
+    // 给用户显示标题和消息
 };
 Controller.prototype.success = function(msg) {
 this.showDialog( "Success", msg ); 
 };
 Controller.prototype.failure = function(err) { 
-this.errors.push( err );
-this.showDialog( "Error", err );
+    this.errors.push( err );
+    this.showDialog( "Error", err );
 };
-
 // 登录功能的对象
 function LoginController() {
-Controller.call( this ); 
+    Controller.call( this ); 
 }
 // 把子类关联到父类
 LoginController.prototype = Object.create( Controller.prototype );
-
 LoginController.prototype.getUser = function() {
     return document.getElementById( "login_username" ).value;
 };
-
 LoginController.prototype.getPassword = function() {
     return document.getElementById( "login_password" ).value; 
 };
-
 LoginController.prototype.validateEntry = function(user,pw) { 
 user = user || this.getUser();
 pw = pw || this.getPassword();
@@ -1310,20 +1337,18 @@ return this.failure(
 "Password must be 5+ characters!"
 ); }
 // 如果执行到这里说明通过验证
-return true; };
-
+return true; 
+};
 // 重写基础的failure(),模仿继承的重写.
 LoginController.prototype.failure = function(err) {
 //“super”调用 
 Controller.prototype.failure.call(this,"Login invalid: " + err);
 };
-
 // 另一个子类
 function AuthController(login) {
 Controller.call( this ); // 合成
 this.login = login;
 }
-
 // 把子类关联到父类 
 AuthController.prototype = Object.create( Controller.prototype ); 
 // 添加相同的行为
@@ -1342,7 +1367,6 @@ if (this.login.validateEntry( user, pw )) {
 .fail( this.failure.bind( this ) ); 
 }
 };
-
 // 重写基础的 success() 
 AuthController.prototype.success = function() {
 //“super”调用
@@ -1358,14 +1382,12 @@ var auth = new AuthController(
 );
 auth.checkAuth();  
 ```  
-
 > 所有控制器共享的基础行为是success(..)、failure(..) 和 showDialog(..)。 子 类 LoginController 和 AuthController 通过重写 failure(..) 和 success(..) 来扩展默认基础类行为。此外，注意 AuthController 需要一个 LoginController 的实例来和登录表单进行 交互，因此这个实例变成了一个数据属性。
 
 * 接下来上面的代码我们用对象的关联来简化这段代码
 * 首先我们可以分析按照面向类的观点这样的一个代码是非常需要抽象出来一个controller从而有不同的实现的,但是在对象关联的设计模式当中并不是这样的.
 * 简单的来说 上述面向类的思想就是A继承C,L也继承C.A在使用的时候又需要L中的行为来决定L和A公有C的行为(就是A中的checkAuth方法成功就是执行C的成功失败就是执行C的失败).总结一下就是A的之所以要继承C就是因为L的行为导致的所以你会发现我们完全可以把中间的A继承C和L继承C改为A关联L就行了
 * 如果你想要说为什么A不能直接的继承L呢?如果A继承L在这种逻辑当中A需要覆写L的基础行为.但是A还需要根据L的行为来让L显示信息(也就是A需要通过checkAuth得到L的结果决定L当中是不是应该执行成功还是失败).所以这样的继承也就没有什么用处.  
-
 ```js
 var LoginController = { 
 errors: [],
