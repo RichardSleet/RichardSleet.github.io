@@ -1,7 +1,7 @@
 ---
 layout: post
 title: 对ReactNative中性能优化的拙见
-category: REactNative-SHARE
+category: ReactNative-SHARE
 ---
 首先在这里非常强烈的推荐十分推荐天地之灵的优化reactnative的视频[快点我](http://i.youku.com/i/UMzM5ODI5MDA4MA==/videos?order=2),然后我会总结一下天地之灵的一些优化关键点,最后我会写写自己优化相机app的一些方案.
 ### React的优化
