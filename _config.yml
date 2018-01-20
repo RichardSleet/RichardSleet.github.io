@@ -1,9 +1,8 @@
 # Basic
-title: Sleet-Shang
+title: RichardSleet
 description: 虽石烂海枯，而此身尚存
-creator: <a href="http://onev.cat">@onevcat</a>
-
-url: "http://vno.onevcat.com"
+#creator: <a href="http://onev.cat">@onevcat</a>
+#url: "http://vno.onevcat.com"
 
 permalink: /:year/:month/:title/
 
