@@ -44,3 +44,8 @@ social:
 ga:
     # id: your_ga_id
     # host: your_host
+
+# Markdown 
+markdown: redcarpet
+redcarpet:
+    extensions: ["tables"]
