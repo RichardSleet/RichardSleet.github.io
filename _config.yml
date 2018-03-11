@@ -46,6 +46,7 @@ ga:
     # host: your_host
 
 # Markdown 
-markdown: redcarpet
-redcarpet:
-    extensions: ["tables"]
+markdown: kramdown
+kramdown:
+    input: GFM
+highlighter: rouge
