@@ -1,14 +1,14 @@
 ---
 layout: post
-title: 你不懂的JS学习笔记-第二部分
+title: 不懂的JS和不懂的原型链
 category: LearingNote-YDKJS
 ---
-# 第二部分:关于this和对象原型
 
-## 第一章 关于this
+* TOC
+{:toc}
 
-### 1. this是什么
-词法作用域也就是静态作用域:在编译的时候就已经由编译器编译给作用域以供引擎使用的(虽然用with和eval可以欺骗词法作用域),但有时候静态作用域是远远不够的,所以就产生了动态作用域,动态作用域就是引擎执行代码时确定的,而且还可以动态的进行更改.this就是动态作用域给出的接口,函数的任何地方都能够使用this
+## this~
+词法作用域也就是静态作用域,在编译的时候就已经由编译器编译给作用域以供引擎使用(虽然用with和eval可以欺骗词法作用域),但有时候静态作用域是远远不够的,所以就产生了动态作用域,动态作用域就是引擎执行代码时确定的,而且还可以动态的进行更改.this就是动态作用域给出的接口,函数的任何地方都能够使用this.也即是我们曾经提到的一个执行上下文的 this 执行.
 
 下面这种方式就是显示的传递上下文,但是并不应该经常使用
 ```js
@@ -23,19 +23,19 @@ identify( you ); // READER
 speak( me ); //hello, 我是 KYLE
 ```
 
-### 2. 对this的误解  
-十分需要注意的是this永远都不会指向他所在的函数的词法作用域,也就是说你在函数当中创建的变量,你是无法通过this的方式去访问的,所以下面的代码就是很好的例子.换句话说就是词法作用域和this作用域是区分开来的
+### 对this的误解  
+十分需要注意的是this永远都不会指向他所在的函数的词法作用域,也就是说你在函数当中创建的变量,你是无法通过this的方式去访问的,下面的代码就是很好的例子.换句话说就是词法作用域和this作用域是区分开来的,分别时执行上下文中的作用域链和 this 两个部分.
 ```js
 function foo(num) {
-console.log( "foo: " + num );
-// 记录 foo 被调用的次数
-this.count++; 
+    console.log( "foo: " + num );
+    // 记录 foo 被调用的次数
+    this.count++; 
 }
 foo.count = 0;
 var i;
 for (i=0; i<10; i++) { 
-if(i>5){
-    foo( i ); 
+    if(i>5){
+        foo( i ); 
     }
 }
 // foo: 6
@@ -45,10 +45,10 @@ if(i>5){
 // foo 被调用了多少次?
 console.log( foo.count ); // 0 -- WTF?
 ```
-原则就是 ***那个object调用了函数,this指就向谁*** 即使object的函数还是会调用函数但是他们只会指向object调用的函数,因为调用堆栈当中永远不会是词法作用域(也就是前面提到的静态作用域,这是完全分割的),调用堆栈当中存储的一定是一个正儿八经的对象,而不是function.
+一个简单的原则就是 ***哪个object调用了函数,this指就向谁*** 即使object的函数还是会调用函数但是他们只会指向object调用的函数(只是压入了不同的执行上下文而已),因为调用堆栈当中永远不会是词法作用域(也就是前面提到的静态作用域,这是完全分割的),调用堆栈当中存储的一定是一个正儿八经的对象,而不是function.
 
-### 3. 对this的作用域得误解
-下面就是一个最典型的例子foo当中调用了bar输出了this.a和this.b很明显结果的输出并不是123而是最外层this指向的window对象这是因为this查找的调用堆栈当中根本不存在函数的this的作用域.
+### 对this的作用域得误解
+下面就是一个最典型的例子foo当中调用了bar输出了this.a和this.b这里的结果的输出并不是123,而是最外层this指向的window对象.这是因为this的默认绑定原则.
 ```js
 //惊奇发现的是如果使用的var变量就会输出对应的值
 var a = 0;
@@ -78,35 +78,10 @@ foo(); // ReferenceError: a is not defined
 ```  
 我记得曾经在阮大大的博客上面看到的var的声明会自动编程window的属性,这是因为js的创造者在创建这个语言的时候为了考虑浏览器的内存所以他会自动的把var声明的变量放在window当中,于是就和typeof一样成为历史遗留的问题了.所以我经常在function当中使用var但是却没有在静态常量中找到声明的值,也就不奇怪了
 
-## 第二章 this全面解析  
+## this的四种绑定方式  
 
-### 1.调用位置
-确定this的绑定首先要搞懂谁在调用,当我们调试程序的时候很容易接触到这个调用栈的概念,就是为了帮助我们查看是谁调用了这个函数  
-```js
-function baz() {
-    // 当前调用栈是:baz
-    // 因此，当前调用位置是全局作用域:baz的上一级
-    console.log( "baz" );
-    bar(); // <-- bar 的调用位置 
-}
-function bar() {
-    // 当前调用栈是 baz -> bar
-    // 因此，当前调用位置在 baz 中
-    console.log( "bar" );
-    foo(); // <-- foo 的调用位置 
-}
-function foo() {
-    // 当前调用栈是 baz -> bar -> foo // 因此，当前调用位置在 bar 中
-    console.log( "foo" );
-}
-baz(); // <-- baz 的调用位置
-```  
-
-### 2.this的四种绑定方式  
-
-#### 默认绑定:
-下面的方式就是默认的绑定方式其中this指的是全局对象,不要简简单单的认为默认绑定就是隐式绑定自动默认的值而已,使用默认绑定我感觉就像对于执行了function的.  
-说白了默认绑定就是null.foo()没有绑定任何一个对象那就全局对象进行绑定(很重要)
+### 默认绑定:
+下面的方式就是默认的绑定方式其中this指的是全局对象,说白了默认绑定就是null.foo()没有绑定任何一个对象那就用全局对象进行绑定(很重要)
 ```js
 function foo() { 
     console.log( this.a );
@@ -138,7 +113,7 @@ var a = 2;
 foo(); // TypeError: this is undefined
 ```  
 
-#### 隐式绑定:
+### 隐式绑定:
 ```js
 function foo() { 
     console.log( this.a );
@@ -196,7 +171,7 @@ doFoo( obj.foo ); // "oops,global"
 ```
 这里面要具体说明一下首先是一个obj.foo是会进行一个前面提到的LHS的操作(因为这里会进行参数的赋值)找到他应该赋值给谁赋值給fn,这同样是一个浅拷贝.所以其实传入的是一个指向foo()函数的指针.和之前的例子一样,因为fn()使用的是默认绑定所以依然绑定在全局上
 
-#### 显示绑定
+### 显示绑定
 简单点来说就是通过特有函数改变this的指向(eg.call,apply) 他们的第一个参数通常都是this需要绑定上的对象  
 ```js
 function(){
@@ -256,11 +231,11 @@ var b = bar(3);
 console.log(b)
 ```  
 
-#### new绑定
+### new绑定
 首先说一说js中的new,这个和java,c,c++的new是不太一样的.因为js实际上没有类的概念,所以其实并不是new的一个class而是new的一个function也就是构造函数.下面是笔者对js中的构造函数的解释
 > 首先我们重新定义一下 JavaScript 中的“构造函数”。在 JavaScript 中，构造函数只是一些 使用 new 操作符时被调用的函数。它们并不会属于某个类，也不会实例化一个类。实际上，它们甚至都不能说是一种特殊的函数类型它们只是被 new 操作符调用的普通函数而已。  
 举例来说，思考一下 Number(..) 作为构造函数时的行为，ES5.1 中这样描述它:
-15.7.2 Number 构造函数
+Number 构造函数
 当 Number 在 new 表达式中被调用时，它是一个构造函数:它会初始化新创建的对象。所以，包括内置对象函数(比如 Number(..),Array(..等)，详情请查看第 3 章)在内的所有函数都可以用 new 来调用，这种函数调用被称为构造函数调用。这里有一个重要但是非常细微的区别:实际上并不存在所谓的“构造函数”，只有对于函数的“构造调用”。   
 
 使用 new 来调用函数，或者说发生构造函数调用时，会自动执行下面的操作。(第三部步很重要)
@@ -278,7 +253,7 @@ var bar = new foo(2);
 console.log( bar.a ); // 2
 ```  
 
-### 3.优先级
+### 调用的优先级
 简单的来说找到this的作用域就是找到调用位置,判断规则.可有时候会因为绑定发生冲突遵循什么样的绑定就由优先级来决定,在大多数情况下会遵守下面的绑定
 > 默认绑定<隐式绑定< (显示绑定,new绑定)根据具体情况而定(因为call和aply并不能和new绑定冲突所以也就不用考虑这些)  
 
@@ -344,16 +319,16 @@ addTen(2);
      var bar = foo()
 
 
-#### 会被忽略的情况  
+### this调用会被忽略的情况
 当显示绑定传入的是this为null或者为undefined的时候等价于默认绑定,就像上面的那样  
 ```js
 function foo() { 
     console.log( this.a );
 }
 var a = 2;
-foo.call( null ); // 2 = foo()
+foo.call( null ); // 2
 ```
-这就不必多说了,但是为什么会出现这样的情况呢,这样的话可以用来展开数组传入函数的参数当中eg:
+js 的绑定还可以这么玩
 ```js
 function foo(a,b) {
     console.log( "a:" + a + ", b:" + b );
@@ -361,10 +336,11 @@ function foo(a,b) {
 // 把数组“展开”成参数
 foo.apply( null, [2, 3] ); // a:2, b:3
 // 使用 bind(..) 进行柯里化 
-var bar = foo.bind( null, 2 ); bar( 3 ); // a:2, b:3
+var bar = foo.bind( null, 2 ); 
+bar( 3 ); // a:2, b:3
 //当然在es6当中加入了...的语法可以替代这样的一个功能,然而翻译大大说这样并不能实现柯里化的相关语法
 ```  
-间接引用:如果你总是拿着函数的指针进行赋值,那么就会有一些像下面的状况(p.foo = o.foo)();想这种奇葩的调用其实并不是调用了p.foo(),因为执行p.foo = o.foo 会返回一个结果值,而这个结果值恰恰就是就是函数的引用,调用这个引用并没有并没有进行任何绑定所以还是使用默认绑定  
+间接引用:如果你总是拿着函数的指针进行赋值,那么就会有一些像下面的状况`(p.foo = o.foo)();`这种奇葩的调用其实并不是调用了p.foo(),因为执行p.foo = o.foo 会返回一个结果值,而这个结果值恰恰就是就是函数的引用,调用这个引用并没有并没有进行任何绑定所以还是使用默认绑定  
 ```js
 function foo() { 
     console.log( this.a );
@@ -382,7 +358,7 @@ o.foo(); // 3
 p.foo()//4
 ```
 
-### 4.软绑定
+### 软绑定
 因为经过硬绑定的函数是没法通过隐式和显式绑定绑定对象的所以说就出现了软绑定的一些概念. 他可以在this被绑定以后还能够更改this的指向,下面代码就是  
 下面就是硬绑定和软绑定的一些实现调用softbind的时候并不是立即执行而是真正的执行函数的时候会检查this是不是空,如果是空或者全局如果是的话就会使用绑定的函数,如果不是则会使用新的this对象
 ```js
@@ -403,7 +379,7 @@ if(!Function.prototype.softBind){
 }
 ```  
 
-### 5.特殊的箭头函数
+### 特殊的箭头函数
 箭头函数最大的特例就是不属于 this的四种绑定的任何一种,而是箭头函数所在的声明时候的上下文来确定的.
 ```js
 function foo(){
@@ -424,7 +400,7 @@ bar.call(obj2);//2
 也就是说返回的this都会指向所在的函数的this简单来说箭头函数()=>{}在foo()内部,所有他的this始终是和foo()的this是一样的
 ,因为经过硬绑定绑定道了obj1,所以只能执行obj1.[有个特别详细的解答](https://github.com/ruanyf/es6tutorial/issues/150)记住阮大大所说的上面的foo函数运行时,就是箭头函数定义时.
 
-## 第三章:对象  
+## 对象  
 
 ### 对象的语法
 对象的定义可以有两种类型第一种是文字语法形式即对象字面量  
@@ -446,7 +422,7 @@ typeof myObj //object
 
 ### js的类型  
 
-#### js在es5当中的一些基本类型
+**js在es5当中的一些基本类型**
 1. string
 2. number
 3. boolean
@@ -464,7 +440,7 @@ typeof myObj //object
 * string -> String, number->Number , boolean-> Boolean
 * null 和 undefined 没有构造形   
 
-#### 内置对象(不如会所内置的构造函数)
+### 内置对象(不如会所内置的构造函数)
 js语音提供了object类型的内置对象(当然使用typeof的时候会返回function,这是因为实际上他们就是一堆构造函数)
 1. String (大写的呦)
 2. Number
@@ -476,7 +452,7 @@ js语音提供了object类型的内置对象(当然使用typeof的时候会返�
 8. RegExp
 9. Error
 
-* 上述的内置对象确实是object的数据类型但是使用typeof返回的时候得到的是function,所以处于更好的理解.将这些理解为function函数更为好.
+* 上述的内置对象确实是object的数据类型但是使用typeof返回的时候得到的是function,所以为了更好的理解.将这些理解为function函数更为好.
 * 你可能会好奇Fuction和Object会是什么关系[具体可以看这里](https://stackoverflow.com/questions/9959727/proto-vs-prototype-in-javascript)简单来说你会发现原型链的最顶层就是Object.prototype.就是上述内置对象Object函数的prototpye对象属性.这也可能就是js当中唯一一个_proto_是null的了.你可以输入下面代码看看真伪
 ```js
 console.log(Object.prototype.__proto__)
@@ -484,7 +460,7 @@ console.log(Object.prototype.__proto__)
 * 而Function和Object的区别在stackoverflow里面的图示已经很明白了.所以总结一下:一个函数例如函数foo的原型是指向Fuction.prototype的,但是foo.prototype._proto_是指向Object.prototype.而Fuction.prototype是指向Object.prototyp的.所以区分义object是不是一个function我想应该就是他有没有prototype的属性(当然有时候经过Function.prototype.bind进行绑定也是没有prototype属性的)
 * 醉醉重要的是_proto_永远只会指向纯纯粹粹的对象,而不是fucntion.这也迎合了null算成Object的一个类型会更好.  
 
-### 内容
+### 值和引用
 简单的来说就是写在一个对象里面值并不是存在对象内部而是保留了这个指针(从技术角度 来说就是引用)指向真正存储的位置因为function就是值类型呀.  
 
 . 和 []其实只是一个指向同一块内存的不同指针而已  
@@ -500,7 +476,7 @@ myObject["3"]; // "bar"
 myObject["[object Object]"]; // "baz"
 ```
 
-#### 1.可计算的属性名
+1. 可计算的属性名  
 所以使用[]访问属性自然而然的就是可以用表达式进行访问  
 ```js
 var prefix = "foo";
@@ -510,8 +486,7 @@ var myObject = {
 };
 myObject["foobar"]; // hello
 myObject["foobaz"]; // world
-```  
-
+```
 Symbol:这里简单的插入介绍一下symbol,当你像上面一样使用属性的时候,你会发现属性的名字会经常的重复,这将会是一个很大的问题.所以在es6当中就引入了Symbol这样一个**基本类型**,同时提供了Symbol的内置函数或对象来创建symbol类型  
 ```js
 var a = Symbol();
@@ -539,7 +514,7 @@ Object.defineProperty(a,mySymbol,{
 ```
 上面间的介绍了一下用symbol作为属性名的三种方法,这来自于阮一峰大大的es6一书上,但让还有之前的symbol,iterator例子当中的创建symbol的方法.切记的是symbol是不能够使用.运算符,因为后面会默认为字符串,而并非symbol类型.  
 
-#### 2.属性和方法
+2. 属性和方法  
 在JAVA和其他的语言当中,当访问的属性是一个函数的时候,大家会把他叫做方法.比如人的一个方法就是学习,而这个方法是局限于人内部的.但是! 在js中这样做是错的因为从技术角度来说，函数永远不会“属于”一个对象，所以把对象内部引用的函数称为“方法”似乎有点不妥。  
 ```js
 function foo(){
@@ -555,7 +530,7 @@ myObject.someFoo; // function foo(){..}
 ```  
 someFoo和myObject.someFoo 只不过是对于同一个对象的不同引用 
 
-#### 3. 数组
+3. 数组  
 当然js的数组也不和java和c中的数组一样  
 js中数组更关心的是数组的下标就像指针一样指向一个存储内存,并不是和C一样直接存储连续的存储空间(这个不知道对不对)  
 js 完全没有其他语言数组该有的样子,你甚至完全可以给这个数组添加 下标不是int型的,但是这并不改变内置方法的计算比如.length  
@@ -567,7 +542,7 @@ myArray.baz; // "baz"
 ```
 但是这样其实是很危险的行为
 
-#### 4.对象的copy  
+4. 对象的copy  
 像java这样的函数就会有一个copy()的方法用来提供深拷贝和浅拷贝,但是js并不同js的深copy还是很复杂的.一般来说最长用的就是直接转换json进行深拷贝
 ```js
 function anotherFunction() { /*..*/ }
@@ -585,12 +560,11 @@ anotherArray.push( anotherObject, myObject );
 ```  
 上述的代码就是一个简单的浅赋值, 对于b,c,d来说就是三个同样的指针引用,当我们想把这样的浅拷贝转换成深拷贝的时候,也就是说需要复制对应的内存里面的内容.所以这就会有一个死循环,比如在复制anotherObject和anotherArray的时候
 anotherArray引用了anotherObject和myObject复制myObject的时候又需要赋值anotherArray就产生了这样的死循环,所以js的深拷贝一直没有明确的方法  
-
 然而笔者给了一个特别巧妙的深复制的方法通过js序列化来进行深复制  
 ```js
      var newObj = JSON.parse( JSON.stringify( someObj ) );
 ```  
-对于比较容易的浅复制js提供了Object.assign()方法  
+对于比较容易的浅复制js提供了Object.assign()方法 
 ```js
     var newObj = Object.assign( {}, myObject );
      newObj.a; // 2
@@ -598,8 +572,7 @@ anotherArray引用了anotherObject和myObject复制myObject的时候又需要赋
      newObj.c === anotherArray; // true
      newObj.d === anotherFunction; // true
 ```  
-
-#### 5.属性描述符
+5. 属性描述符  
 一个对象的的属性不仅仅会存储属性的值而且还会存储属性的描述符
 ```js
 var myObject = { 
@@ -624,7 +597,7 @@ object.defineProperty( myObject, "a", {
 } );
 myObject.a; // 2
 ```  
-1.writable:这个属性代表着是否可以修改属性的  
+1.writable:这个属性代表着是否可以修改属性  
 ```js
 var myObject = {};
 Object.defineProperty( myObject, "a", {
@@ -636,31 +609,31 @@ myObject.a; // 2
 ```  
 2.configurable:属性可以配置即可以使用defineproperty()方法修改属性描述符  
 ```js
-var myObject = { a:2
+var myObject = { 
+    a:2
 };
 myObject.a = 3;
 myObject.a; // 3
 Object.defineProperty( myObject, "a", {
-value: 4,
-writable: true,
-configurable: false, // 不可配置!
-enumerable: true 
+    value: 4,
+    writable: true,
+    configurable: false, // 不可配置!
+    enumerable: true 
 } );
 myObject.a; // 4
 myObject.a = 5;
 myObject.a; // 5
 Object.defineProperty( myObject, "a", {
-         value: 6,
-        writable: true, 
-        configurable: true, 
-        enumerable: true
-} ); // TypeError
+    value: 6,
+    writable: true, 
+    configurable: true, 
+    enumerable: true
+} );
 ```  
-特别要强调的是更改这个属性以后就再也没法改动属性了,即单向操作.但是我们依然可以该拜年writable的状态由true改为false,但是无法由false改为true。   
-
+特别要强调的是更改这个属性以后就再也没法改动属性了,即单向操作.我们依然可以把writable的状态由true改为false,但是无法由false改为true。   
 3.Enumerable:这个属性是指该属性是否可以被遍历比如for in 循环 还有es6当中的iterator的迭代器
 
-#### 6. 不变性
+6. 不变性  
 如果对一个对象的所有直接属性都不可以被修改比如设置writeable为false.但这个属性的引用没有更改m依然可以对这个属性的引用的内存进行修改(改变不了指针的指向但是可以改变指针的内容)
 ```js
 myImmutableObject.foo; // [1,2,3]
@@ -668,7 +641,6 @@ myImmutableObject.foo.push( 4 );
 myImmutableObject.foo; // [1,2,3,4]
 ```
 对象常量:writable:false 和 configurable:false 就可以创建一个对象常量   
-
 不可扩展:如果禁止向对象添加属性可以使用 object.preventExtensions()方法.当你向这个对象添加属性的时候就会抛出异常  
 ```js
 var myObject = { 
@@ -679,13 +651,10 @@ myObject.b = 3;
 myObject.b; // undefined
 ```
 密封:Object.seal(..)会创建一个“密封”的对象，这个方法实际上会在一个现有对象上调用 Object.preventExtensions(..) 并把所有现有属性标记为 configurable:false。
-但是可以修改属性的值.也就是不可以添加属性也不可以更改属性的描述符.
-
-冻结:Object.freeze(..)会创建一个冻结对象，这个方法实际上会在一个现有对象上调用Object.seal(..) 并把所有“数据访问”属性标记为writable:false，这样就无法修改它们的值。也就是不可以添加属性也不可以更改属性的描述符还不可以重新的设置对象 
-
-以上方法都会不会对对象内部引用的其他引用起作用比如数组
-
-#### 7. [[Get]]
+但是可以修改属性的值.也就是不可以添加属性也不可以更改属性的描述符.  
+冻结:Object.freeze(..)会创建一个冻结对象，这个方法实际上会在一个现有对象上调用Object.seal(..) 并把所有“数据访问”属性标记为writable:false，这样就无法修改它们的值。也就是不可以添加属性也不可以更改属性的描述符还不可以重新的设置对象  
+以上方法都会不会对对象内部引用的其他引用起作用比如数组  
+6. [[Get]]
 下面的代码就是get操作
 ```js
 var myObject = { 
@@ -697,41 +666,38 @@ myObject.a; // 2
 
 #### 8. [[Put]]
 字面理解就是存放的意思相对于给对象赋值(就是赋予一个没有的属性)他的调用需要下面的条件
-> 1. 属性是否是访问描述符(参见3.3.9节)也就是这个对象的属性存在不存在如果是并且存在setter就调用setter。 
+> 1. 属性是否是访问描述符,也就是这个对象的属性是否存在,不存在的话如但存在setter就调用setter。 
 > 2. 属性的数据描述符中writable是否是false?如果是，在非严格模式下静默失败，在
 严格模式下抛出 TypeError 异常。
 > 3. 如果都不是，将该值设置为属性的值。  
-
 而当没有属性同样需要考虑原型链机制
-
-#### 9. Getter和Setter  
-get的理解就是获取一个值,set的理解就是设置一个值.put的理解就是存放一个值么,如果这个值的访问修饰符已经存在的话,他就会执行这个值的set方法,如果这个值的访问修饰符不存在就会执行put方法
+9. Getter和Setter  
+get的理解就是获取一个值,set的理解就是设置一个值,put的理解就是存放一个值么(也就是第一次),如果这个值的访问修饰符已经存在的话,他就会执行这个值的set方法,如果这个值的访问修饰符不存在就会执行put方法
 ```js
 var myObject = {
-// 给 a 定义一个 
-getter get a() {
-    return 2; 
-}
+    // 给 a 定义一个 get
+    get a() {
+        return 2; 
+    }
 };
 Object.defineProperty( 
     myObject, // 目标对象 
     "b", // 属性名
-{
-// 描述符
-// 给 b 设置一个 getter
-get: function()
-{ 
-    return this.a * 2 
-},
-// 确保 b 会出现在对象的属性列表中
-enumerable: true
-}
+    {
+        // 描述符
+        // 给 b 设置一个 getter
+        get: function()
+        { 
+            return this.a * 2 
+        },
+        // 确保 b 会出现在对象的属性列表中
+        enumerable: true
+    }
 );
 myObject.a; // 2
 myObject.b; // 4
 ```
 上面加入get关键词是属于隐式定义,defineProperty(..)属于显示定义,他们都创建了一个没有值的属性,但是返回值却被当做了这个值  
-
 所以就会有一个问题这样创建的只有getter的属性无论给什么值都是get()方法的return的返回值(set操作就是没有意义的),并且set如果没有被定义(put)操作就会失效,因为像上面的一样[[put]]会查看是否有描述符,当然我们定义了get所以就会存在描述符,然后再次调用set方法,但是并没有set方法就会失效
 ```js
 var myObject = {
@@ -759,7 +725,7 @@ myObject.a; // 4
 ```
 上述的_a_其实就是put默认存储的变量的位置  
 
-#### 10.存在性
+10. 存在性
 当一个属性被赋值为undefined后,我们对他再进行获取但是如何区分是值不存在的undefined还是我们设置的undefined呢
 ```js
 var myObject = {
@@ -769,21 +735,18 @@ var myObject = {
 ("b" in myObject)//false
 myObject.hasOwnProperty("a")//true
 ```
+js为我们提供了in 和 hasOwnProperty()两种方法:他们的区别是使用in的时候也会对原型链上的值进行检索,但是hasOwnProperty()只会检索当前对象的属性在使用hasOwnProperty()的时候特别需要注意的一种失败的情况就是hasOwnProperty是来自Object的一种委托,如果一个对象并没有得到Object的原型就会出现失败的情况.所以一种更加强硬的判断方法就是`Object.prototype.hasOwnProperty.call(myObject,"a")` 借助显示绑定.由于in方法是返回属性名,所以 `4 in [1,2,4]`这个代码得到的答案false
+**枚举**:  
+当一个属性被设置为不可枚举的时候虽然可以访问到他的值,但是却不会出现在for...in..当中,需要特别注意的是for...in 还可以遍历数值的索引,所以这个方法尽量只应用在对象上propertyIsEnumerable(..) 方法相当于在上述hasOwnProperty(..)的基础上面继续判断是否满足 enumerable:true,Object.keys(..)会返回一个可以枚举属性的数组,Object.getOwnPropertyNames(..) 会返回一个数组包含的所有属性不管是不是可以枚举,Oject.keys(..),Object.getOwnPropertyNames(..),Object.hasOwnProperty(..)一样只会直接查找对象直接包含的属性  
 
-js为我们提供了in 和 hasOwnProperty()两种方法:他们的区别是使用in的时候也会对原型链上的值进行检索,但是hasOwnProperty()就像名字一样只会检索自己的属性在使用hasOwnProperty()的时候特别需要注意的一种失败的情况就是hasOwnProperty是来自Object的一种委托但是,如果一个对象并没有得到Object的原型就会出现失败的情况.所以一种更加强硬的判断方法就是Object.prototype.hasOwnProperty.call(myObject,"a") 借助显示绑定.in检查是否有某个值的时候实际是检查的属性名是不是存在,所以 4 in [1,2,4]这个代码得到的答案false
-
-枚举:
-当一个属性被设置为不可枚举的时候虽然可以访问到他的值,但是却不会出现在for...in..当中,需要特别注意的是for...in 还可以遍历数值的索引,所以这个方法尽量只应用在对象上propertyIsEnumerable(..) 方法相当于在上述hasOwnProperty(..)的基础上面继续判断是否满足 enumerable:true,Object.keys(..)会返回一个可以枚举属性的数组,Object.getOwnPropertyNames(..) 会返回一个数组包含的所有属性不管是不是可以枚举,Oject.keys(..),Object.getOwnPropertyNames(..),Object.hasOwnProperty(..)一样只会直接查找对象直接包含的属性
-
-#### 11.遍历
+11. 遍历  
 for...in 可以遍历原型链上的所有的属性名,但是当我们需要遍历值的时候会用到迭代器
 forEach(...),every(...),和some(...)使用for循环的方式遍历数组其实本质上并不是指的遍历是通过下标指针去遍历值数组当中的  
-
 下面就是对应的回调函数处理不同的地方:  
 1.forEach(...): 会遍历数组中的所有值并忽略回调函数的返回值  
 2.every(..) : 会一直运行直到回调函数返回 false(或者“假”值)  
 3.some(..) 会一直运行直到回调函数返回 true(或者 “真”值)。
-特别强调的是数组的遍历是有序的但是对象的遍历是无序的,不同引擎for...in的遍历可能会不一样对于数组直接遍历像for一样直接遍历值可以使用es6的for....of方法,for...of会吊用迭代器对象的next()方法返回所有的值,因为数组有内置的 iterator迭代器我们可以手动遍历
+特别强调的是数组的遍历是有序的但是对象的遍历是无序的,不同引擎for...in,for一样直接遍历值可以使用es6的for....of方法,for...of会调用迭代器对象的next()方法返回所有的值,因为数组有内置的 iterator迭代器我们可以手动遍历
 ```js
 var myarray = [1,2,3]
 var it = myArray[Symbol.iterator]()//调用返回地带起的方法,得到迭代器
@@ -804,23 +767,23 @@ Object.defineProperty(
     myObject,
     Symbol.iterator,
     {
-    enumerable: false,
-    writable: false,
-    configurable: true,
-    //value 就是当前属性的值,这是一个会返回iterator的函数
-    value:function(){
-        var o = this;
-        var idx = 0;
-        var ks = Object.keys(o)
-        return {
-            next: function(){
-                return {
-                    value: o[ks[idx++]],
-                    done : (idx>ks.length)
+        enumerable: false,
+        writable: false,
+        configurable: true,
+        //value 就是当前属性的值,这是一个会返回iterator的函数
+        value:function(){
+            var o = this;
+            var idx = 0;
+            var ks = Object.keys(o)
+            return {
+                next: function(){
+                    return {
+                        value: o[ks[idx++]],
+                        done : (idx>ks.length)
+                    }
                 }
             }
         }
-    }
     }
 )
 // 手动遍历
@@ -834,23 +797,21 @@ for (var v of myObject){
 }
 ```
 
-## 第四章:混合对象类
+## 混合对象类
 这一整个章节都是一些理论的东西,所以摘要一些关键的地方
-
 ### 类理论
 在其他的编程语言当中一般子类都是覆写父类的方法,但在js当中这么写可能会降低代码的可读性和健壮性js中的类虽然es6中的各种属性都在为js模拟一个相似的基于类的设计模式但是实际上两者完全不同的
 ### 类的机制
 类的构造:笔者在这里把类和对象比作家住的蓝图和建筑,就像我在大一的时候理解的就是造钱的模具和钱的关系  
 构造函数:想上面的举例决定每个大楼不一样的属性或者是钱的唯一的编号就是构造函数需要赋予的不同的东西,构造函数是属于类的
-
 ### 类的继承
 就如儿子和爸爸一样,子类会继承父类的一些特性.但是这些特性是相互分开的,即使父类再次改变也不会影响子类的但是父类和子类斌不是上述的蓝图和建筑的关系.
 
-1.类的多态:多态的另一个方面是，在继承链的不同层次中一个方法名可以被多次定义，当调用方法时 会自动选择合适的定义。特别注意的是像别的语言一样使用super调用父类的的构造函数是没有问题的因为构造函数是属于类的,但是在js当中恰恰相反'类'(注意引号)是属于构造函数的.而js当中每一个构造函数都会有一个.prototype 的对象,因此并没有什么关系(es6可以通过super(调用)而且是必须的)  
+**1.类的多态:**多态的另一个方面是，在继承链的不同层次中一个方法名可以被多次定义，当调用方法时 会自动选择合适的定义。特别注意的是像别的语言一样使用super调用父类的的构造函数是没有问题的因为构造函数是属于类的,但是在js当中恰恰相反'类'(注意引号)是属于构造函数的.而js当中每一个构造函数都会有一个.prototype 的对象,因此并没有什么关系(es6可以通过super(调用)而且是必须的)  
 
-2.多重继承:对于java等一些语言只支持单继承,但是js本身是没有提供"多重继承"的功能的,因为多重继承更为复杂,但是却可以使用其他方法来实现多继承
+**2.多重继承:**对于java等一些语言只支持单继承,但是js本身是没有提供"多重继承"的功能的,因为多重继承更为复杂,但是却可以使用其他方法来实现多继承
 
-### 混入(其实就是为了模拟其他语言继承时的赋值)
+**混入(其实就是为了模拟其他语言继承时的赋值)**  
 值得注意的是js当中只有对象并不存在可以实例化的'类',所以自然不能像蓝图对建筑一样赋值重新建造一份.但是js确可以模拟这样的复制行为即是混入.分为显示混入和隐式混入,在大多数框架中被称为extend()
 ```js
 function extend(sourceObj,targetObj){
@@ -901,9 +862,7 @@ mixin({
     }
 },Car)
 ```
-
-#### 3. 寄生继承
-`1先做个标记回来看看
+**3.寄生继承**
 ```js
 function Vehicle(){
     this.engines = 1
@@ -1069,7 +1028,7 @@ Bar.prototype = new Foo();
 ```
 ### 五种继承方式
 1.简单原型链继承:  
-这种继承方式的核心就是将子构造函数的prototype设置为父构造函数的一个对象实例,这里面虽然继承过来的属性是被存放在了prototype对象里面.可是由于每进行原型绑定的时候内部的**[[prototype]]其实会执行一个浅copy对需要拷贝的原型(也就是上述的new发生的第二步)**,所以如果你的值是引用这就会导致不同对象实际操作的是一个引用.
+这种继承方式的核心就是将子构造函数的prototype设置为父构造函数的一个对象实例,这里面虽然继承过来的属性是被存放在了prototype对象里面.可是由于进行原型绑定的时候内部的**[[prototype]]其实会执行一个浅copy对需要拷贝的原型(也就是上述的new发生的第二步)**,所以如果你的值是引用这就会导致不同对象实际操作的是一个引用.
 ```js
 function Super(){
     this.val = 1;
@@ -1183,7 +1142,6 @@ var b = Object.craete(a);
 isRelatedTo(b,a)//true
 ```
 上面的代码最大的问题就是实际上o1并不是由F构造的!!!所以即使得到了我们想要的但是它还是有弊端的  
-`1 没搞懂有什么弊端,js的反射  
 除了instaceof 还可以利用js的[[prototype]]反射机制的原理.isPrototypeOf(a)实际上就是看看a的整条[[Prototype]]链中有没有Foo.prototype.这一种方法并不需要间接的引用函数(Foo)
 ```js
 Foo.prototype.isPrototypeOf( a ); // true
@@ -1192,7 +1150,7 @@ Foo.prototype.isPrototypeOf( a ); // true
 ## 第六章:行为委托
 因为这一章更多的是思想模式和理论的概念,所以就简单的自己总结一下.
 ### 比较一下类理论和委托理论
-#### 1.类理论: 
+**1.类理论:**  
 我理解的类理论就是存在一个类和对象两个概念,只有类才能创建对象.是一个上下级别的概念.只有类才能实现继承和多态.比如说如果一部分东西拥有共同的方法则这个公共的方法应该作为基类.而对于不同的部分会有不同的重写.也就是子类的特殊化.这就是类也就是所谓的面向对象的设计.
 ```js
 class Task{
@@ -1212,7 +1170,7 @@ class ABC inherits Task { // ...
 ```
 上面是书中的伪代码,值得强调的一点事.这种类理论,父类的公用的东西实际上是在每个继承类的对象的内部,每一个都是相互独立的.比如由XYZ类构造的对象会赋值一份Task,和XYZ中的行为.
 
-#### 2.委托理论:
+**2.委托理论:**
 但是js当中的理论并不是这个样子的.js采用的委托理论.是因为js当中只有对象没有类.js当中创建对象不需要依靠class就像之前所说的那样子直接用{}创建对象字面量.但是js可以依靠对象之间的委托来实现这样的一个继承多态的功能.同理我们可以同样的把一个共同的部分作为一个对象,而其他和他平等的对象实际上是于这个抽出共同行为的对象相互关联.每个对象不同的部分由对象本身来实现.而如果需要执行相同的地方可以在这个对象中调用关联的抽出共同行为的对象的方法.  
 这么说可能会比较绕口,来看一个代码体验一下.
 ```js
@@ -1240,7 +1198,7 @@ XYZ.outputTaskDetails = function() {
 根据js的[[prototype]]机制如果当需要调用共同的行为也就是Task中的方法,对象中肯定没有实现这样的一个方法,所以就会首先查询关联的对象有没有这个方法.于是查询Task则会检测到共同的方法对其调用.对于上面的代码出现了id和label两个成员变量.他们都是存储在XYZ的内部而并不是Task!如果每一个对象都需要向Task里面存储东西的话.那就amzing了.  
 所以前面就会说为什么你再继承的时候要避免在对象中写重名的方法,这样你就会完全屏蔽掉你关联对象的方法.上述中之所以调用Task的setID方法会在XYZ中出现ID是因为这里使用了前面提到的this的隐式绑定.当你需要更加区分两者的差别的时候[P172也的图会给你答案](https://github.com/getify/You-Dont-Know-JS/blob/master/this%20%26%20object%20prototypes/ch6.md)
 
-### 更简洁的设计.
+**更简洁的设计.**  
 如果有一个功能需要登录后提交表单进行验证.则在MVC中的C中需要控制两个逻辑流程1,操作form表单得到信息.2.网络请求的控制.按照面向类的理论  
 ```js
 // 从这里面抽取的共同的行为作为一个类
@@ -1380,7 +1338,7 @@ AuthController.rejected = function(err) {
 ```
 所以按对象关联的设计模式来看,这样的代码更加简便AuthController需要使用LoginController的方法也就是将,既然A想要根据L的结果来做你的事情,那我们就让A把这件事情委托给B就好了!!!!! A和L就像兄弟一样,你让我干啥我就干啥
 
-### 更好的语法  
+**更好的语法**
 在上面的AuthController中你会发现这样写非常的反人类不像LoginController一样所以es6提供的一种方式就是
 ```js
 // 使用更好的对象字面形式语法和简洁方法 
@@ -1392,7 +1350,7 @@ server(url,data) { }
 // 现在把 AuthController 关联到 LoginController 
 Object.setPrototypeOf( AuthController, LoginController );
 ```
-#### 反词法
+**反词法**  
 es6的语法糖实现了这样的一个功能
 ```js
 var Foo = {
@@ -1406,14 +1364,14 @@ bar: function() { /*..*/ },
 
 ### 自省
 简单的来说就是检查实例的类型,就如之前所说的 a instaceof func;正如之前说的instaceof只能用于一个对象和一个函数的关系,如果是两个函数需要怎么办呢.
-#### 鸭子模型
+**鸭子模型**
 如果他走起来像鸭子,那他就是鸭子.
 ```js
 if (a1.walkLikeDuck) { 
     a1.walkLikeDuck();
 }
 ```
-就像上面只要a1能够调用walkLikeDuck这个方法,我们就认为他是这个类的实例,但是这是脆弱的.比如我们用promise的then来判断方法.但是这个then并不是一定会出现的.所义就会又问题了.
+就像上面只要a1能够调用walkLikeDuck这个方法,我们就认为他是这个类的实例,但是这是脆弱的.比如我们用promise的then来判断方法.但是这个then并不是一定会出现的.所义就会又有问题了.
 
 
 

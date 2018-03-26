@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 你不懂的Javascript的小记(作用域)
+title: Javascript中的作用域
 category: LearingNote-YDKJS
 ---
 
