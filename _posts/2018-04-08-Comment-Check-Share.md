@@ -101,3 +101,60 @@ const commentRegExp = '[\\*\\/]\\/.*?\\n+';
 const exportObjectRegExp = 'export(?:\\sdefault)?\\s\\{((.|\\n|\\r)*?)\\}';
 ```
 我的神这都是什么鬼,写成字符串形式的正则不仅要写\\而且也不能换行.这种可读性实在是太差劲了.于是我自己简单的封装了一下.
+```js
+const regExpComment = function(flag) {
+    this.regexp = '';
+}
+regExpComment.prototype.getRegEx = function _getRegEx() {
+    var result;
+    try {
+        result = new RegExp(this.regExp);
+    } catch (e) {
+        console.error(e);
+    }
+    return result;
+}
+regExpComment.prototype.write = function _write() {
+    var args = Array.prototype.slice.call(arguments);
+    switch(args.length) {
+        case 1:
+            //注释被写在一个字符串中
+            this.regexp.concat(filter(args[0]));
+            break;
+        case 2:
+            //注释写在两个字符串中
+            this.regexp.concat(transform(args[0]));
+            break;
+        default:
+            return;
+    }
+}
+const transform = function(str) {
+    return str.replace(/\\/g,'\\');
+}
+const filter = function(str) {
+    var resultArr = str.replace(/\n/g, '^&*(').split('^&*(');
+    resultArr = Array.prototype.map.call(resultArr, (item) => {
+        return item !== '';
+    });
+    resultArr.map((item) => {
+        //先翻转字符串,去掉#后面的内容
+        var reverseResult = item.split('').reverse().join('').replace(/#\w*\s*/,'');
+        return reverseResult.split('').reverse().join('');
+    })
+}
+// 使用方式一
+var regExp = new regExpComment();
+regExp.write('abc','匹配 abc 字符串');
+regExp.write('\d', '匹配数字');
+console.log(regExp.getRegEx().test('abc123'));
+//使用方式二
+var regExp = new regExpComment();
+regExp.write(
+    `
+        abc #匹配abc
+        \d #匹配数字
+    `
+);
+
+```
