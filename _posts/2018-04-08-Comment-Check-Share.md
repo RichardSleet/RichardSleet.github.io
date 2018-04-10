@@ -159,5 +159,46 @@ regExp.write(
 ```
 这样就方便自己在写注释的时候的提高可读性.
 
+### 调试小技巧的总结
+在之前写的一个下拉刷新的组件的时候,由于很多自己的状态判断函数都会改变刷新框的实际高度.所以经常会出现一些无法调试的 bug.比如在我遇到的 bug 当中就出现了,我明明已经设置了刷新识图的高度为0,但是得到的结果却并非如此.这是因为我写的一个防抖函数被延迟执行了.但是当时我是并不知道的.比如下面
+```js
+var refreshViewHeight = null;
+onRefresh(){
+    refreshViewHeight = 100;
+}
+onEndRefresh(){
+    //可能改变
+    refreshViewHeight = 0;
+}
+scrolling(context){
+    //可能改变
+    if (scrolling.tId) {
+        return;
+    }
+    scrolling.tId = setTimeout(function() {
+        window.requestAnimationFrame(()=>{
+            refreshViewHeight = 0;
+        });
+        clearTimeout(scrolling.tId);
+    }, 25);
+}
+```
+上述的情况当中我就很难判断究竟是`onEndRefresh`和`scrolling`那个再次改变了状态.而且由于是监听的触摸事件会有比较频繁的触发,很难调试.于是当时想到了这样的方法
+```js
+Object.defineProperty(obj, refreshViewHeight, {
+    set(val){
+        if(val === 0){
+            try {
+                new Error();
+            } catch (e){
+                console.error(e);
+            }
+        }
+    },
+    //...
+})
+```
+上面的方法就是当前的函数被执行过以后,设置属性 set 方法监听他的状态,监听其他的函数.并通过抛出一个error检查异常信息的调用堆栈.从而确定这个属性是在哪个函数当中再次被赋值的.
+
 ### 总结
 这个脚本注释率其实目前还有很多的问题需要解决,有很大的改进空间.比如最开始说的进行一些语义的检查,最开始下了很多功夫在上面,但是后来发现难度不小工作量野也很大就放弃掉了.回头改进改进~
